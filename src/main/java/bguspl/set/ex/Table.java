@@ -29,6 +29,9 @@ public class Table {
      */
     protected final Integer[] cardToSlot; // slot per card (if any)
 
+    private final boolean[][] slotToToken;
+    protected final int legalSetSize = 3;
+
     /**
      * Constructor for testing.
      *
@@ -41,6 +44,9 @@ public class Table {
         this.env = env;
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
+
+        //TODO check if needed
+        this.slotToToken = new boolean[slotToCard.length][env.config.players];
     }
 
     /**
@@ -115,7 +121,9 @@ public class Table {
      * @param slot   - the slot on which to place the token.
      */
     public void placeToken(int player, int slot) {
-        // TODO implement
+        slotToToken[slot][player] = true;
+        env.ui.placeToken(player,slot);
+        // TODO check if enough
     }
 
     /**
@@ -124,8 +132,8 @@ public class Table {
      * @param slot   - the slot from which to remove the token.
      * @return       - true iff a token was successfully removed.
      */
-    public boolean removeToken(int player, int slot) {
-        // TODO implement
-        return false;
+    public void removeToken(int player, int slot) {
+        env.ui.removeToken(player, slot);
+        // TODO check if enough
     }
 }

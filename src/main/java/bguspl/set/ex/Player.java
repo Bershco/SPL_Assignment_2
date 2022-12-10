@@ -1,5 +1,8 @@
 package bguspl.set.ex;
 
+import java.util.NoSuchElementException;
+import java.util.Random;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
 import bguspl.set.Env;
@@ -16,6 +19,8 @@ public class Player implements Runnable {
      * The game environment object.
      */
     private final Env env;
+
+    private final Dealer dealer;
 
     /**
      * Game entities.
@@ -52,6 +57,12 @@ public class Player implements Runnable {
      */
     private int score;
 
+
+    private final ConcurrentLinkedQueue<int> incomingActions;
+
+    private final boolean[] tokenOnSlot;
+    private int tokensPlaced;
+
     /**
      * The class constructor.
      *
@@ -66,6 +77,10 @@ public class Player implements Runnable {
         this.table = table;
         this.id = id;
         this.human = human;
+        this.dealer = dealer;
+        incomingActions = new ConcurrentLinkedQueue<int>();
+        tokenOnSlot = new boolean[env.config.rows * env.config.columns];
+        tokensPlaced = 0;
     }
 
     /**
@@ -78,9 +93,30 @@ public class Player implements Runnable {
         if (!human) createArtificialIntelligence();
 
         while (!terminate) {
-            // TODO implement main player loop
+            // TODO check if proper
+            try {
+                int nextAction = incomingActions.remove();
+                if (tokenOnSlot[nextAction]) {
+                    table.removeToken(id,nextAction);
+                    tokenOnSlot[nextAction] = false;
+                    if (tokensPlaced > 0)
+                        tokensPlaced--;
+                } else {
+                    table.placeToken(id,nextAction);
+                    tokenOnSlot[nextAction] = true;
+                    if (++tokensPlaced == table.legalSetSize)
+                        ; //TODO call the dealer to check if my three tokens placed are actually a set, and receive a point or penalty depends on what happened.
+                }
+
+            } catch (NoSuchElementException ignored) {
+                try {
+                    incomingActions.wait();
+                } catch (InterruptedException ignored1) {}
+            }
         }
-        if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
+        if (!human)
+            while (aiThread.isAlive())
+                try { aiThread.join(); } catch (InterruptedException ignored) {}
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
     }
 
@@ -93,9 +129,10 @@ public class Player implements Runnable {
         aiThread = new Thread(() -> {
             env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " starting.");
             while (!terminate) {
-                // TODO implement player key press simulator
+                //TODO check if proper
+                keyPressSimulator();
                 try {
-                    synchronized (this) { wait(); }
+                    incomingActions.wait();
                 } catch (InterruptedException ignored) {}
             }
             env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
@@ -103,11 +140,21 @@ public class Player implements Runnable {
         aiThread.start();
     }
 
+    private void keyPressSimulator() {
+        int[] options = env.config.playerKeys(id);
+        Random random = new Random();
+        keyPressed(options[(random.nextInt()*options.length)]);
+    }
     /**
      * Called when the game should be terminated due to an external event.
      */
     public void terminate() {
-        // TODO implement
+        // TODO check if proper
+        terminate = true;
+        while (playerThread.isAlive())
+            try {
+                playerThread.join();
+            } catch (InterruptedException ignored) {}
     }
 
     /**
@@ -116,7 +163,11 @@ public class Player implements Runnable {
      * @param slot - the slot corresponding to the key pressed.
      */
     public void keyPressed(int slot) {
-        // TODO implement
+        // TODO check if proper
+        if (incomingActions.size() < 3) {
+            incomingActions.add(slot);
+            incomingActions.notifyAll();
+        }
     }
 
     /**
@@ -126,17 +177,24 @@ public class Player implements Runnable {
      * @post - the player's score is updated in the ui.
      */
     public void point() {
-        // TODO implement
-
+        // TODO check if proper
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
+        env.ui.setFreeze(id,env.config.pointFreezeMillis);
+        try {
+            playerThread.wait(env.config.pointFreezeMillis);
+        } catch (InterruptedException ignored1) {}
     }
 
     /**
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
-        // TODO implement
+        // TODO check if proper
+        env.ui.setFreeze(id,env.config.penaltyFreezeMillis);
+        try {
+            playerThread.wait(env.config.penaltyFreezeMillis);
+        } catch (InterruptedException ignored1) {}
     }
 
     public int getScore() {
