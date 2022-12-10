@@ -2,6 +2,7 @@ package bguspl.set.ex;
 
 import java.util.NoSuchElementException;
 import java.util.Random;
+import java.util.Vector;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
@@ -104,8 +105,13 @@ public class Player implements Runnable {
                 } else {
                     table.placeToken(id,nextAction);
                     tokenOnSlot[nextAction] = true;
-                    if (++tokensPlaced == table.legalSetSize)
-                        ; //TODO call the dealer to check if my three tokens placed are actually a set, and receive a point or penalty depends on what happened.
+                    if (++tokensPlaced == table.legalSetSize) {
+                        Vector<int> cards = new Vector<int>();
+                        dealer.iGotASet(this, cards);
+                        try {
+                            cards.wait();
+                        } catch (InterruptedException ignored) {}
+                    }
                 }
 
             } catch (NoSuchElementException ignored) {
@@ -182,7 +188,7 @@ public class Player implements Runnable {
         env.ui.setScore(id, ++score);
         env.ui.setFreeze(id,env.config.pointFreezeMillis);
         try {
-            playerThread.wait(env.config.pointFreezeMillis);
+            playerThread.wait(env.config.pointFreezeMillis); //TODO check if this needs to be playerThread or currentThread()
         } catch (InterruptedException ignored1) {}
     }
 
@@ -193,7 +199,7 @@ public class Player implements Runnable {
         // TODO check if proper
         env.ui.setFreeze(id,env.config.penaltyFreezeMillis);
         try {
-            playerThread.wait(env.config.penaltyFreezeMillis);
+            playerThread.wait(env.config.penaltyFreezeMillis); //TODO check if this needs to be playerThread or currentThread()
         } catch (InterruptedException ignored1) {}
     }
 

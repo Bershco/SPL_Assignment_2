@@ -3,7 +3,9 @@ package bguspl.set.ex;
 import bguspl.set.Env;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Vector;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -39,6 +41,9 @@ public class Dealer implements Runnable {
      */
     private long reshuffleTime = Long.MAX_VALUE;
 
+    private ConcurrentLinkedQueue<Vector<int>> fairnessQueueCards;
+    private ConcurrentLinkedQueue<Player> fairnessQueuePlayers;
+
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
@@ -62,6 +67,22 @@ public class Dealer implements Runnable {
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
     }
 
+    private void checkNextSet() {
+        try {
+            Vector<int> cards = fairnessQueueCards.remove();
+            Player p = fairnessQueuePlayers.remove();
+            int[] cardsAsArray = new int[cards.size()];
+            for (int i = 0; i < cards.size(); i++) {
+                cardsAsArray[i] = cards.get(i);
+            }
+            if (env.util.testSet(cardsAsArray))
+                p.point();
+            else
+                p.penalty();
+            cards.notifyAll();
+        } catch (NoSuchElementException ignored) {}
+    }
+
     /**
      * The inner loop of the dealer thread that runs as long as the countdown did not time out.
      */
@@ -78,7 +99,6 @@ public class Dealer implements Runnable {
      * Called when the game should be terminated due to an external event.
      */
     public void terminate() {
-        //TODO : check if terminate should be updated to true
         terminate = true;
         for(Player p : players){
             p.terminate();
@@ -143,6 +163,11 @@ public class Dealer implements Runnable {
         }
     }
 
+    public void iGotASet(Player p, Vector<int> cards) {
+        fairnessQueueCards.add(cards);
+        fairnessQueuePlayers.add(p);
+    }
+
     /**
      * Check who is/are the winner/s and displays them.
      */
@@ -165,7 +190,10 @@ public class Dealer implements Runnable {
         for(int i = 0; i < potentialWinners.size(); i++){
             winners[i] = potentialWinners.get(i);
         }
-
+        /*
+        hey lizette, as I said, I removed one loop and made so that it's the exact same logic but instead of all the things that were before it's a bit more simplistic
+        I think that's it, there's nothing really more to it.
+         */
         env.ui.announceWinner(winners);
     }
 }

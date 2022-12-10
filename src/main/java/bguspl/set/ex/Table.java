@@ -29,7 +29,6 @@ public class Table {
      */
     protected final Integer[] cardToSlot; // slot per card (if any)
 
-    private final boolean[][] slotToToken;
     protected final int legalSetSize = 3;
 
     /**
@@ -46,7 +45,6 @@ public class Table {
         this.cardToSlot = cardToSlot;
 
         //TODO check if needed
-        this.slotToToken = new boolean[slotToCard.length][env.config.players];
     }
 
     /**
@@ -94,7 +92,7 @@ public class Table {
      */
     public void placeCard(int card, int slot) {
         try {
-            Thread.sleep(env.config.tableDelayMillis);
+            Thread.currentThread().wait(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
 
         cardToSlot[card] = slot;
@@ -109,7 +107,7 @@ public class Table {
      */
     public void removeCard(int slot) {
         try {
-            Thread.sleep(env.config.tableDelayMillis);
+            Thread.currentThread().wait(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
 
         // TODO implement
@@ -121,7 +119,6 @@ public class Table {
      * @param slot   - the slot on which to place the token.
      */
     public void placeToken(int player, int slot) {
-        slotToToken[slot][player] = true;
         env.ui.placeToken(player,slot);
         // TODO check if enough
     }
@@ -130,7 +127,6 @@ public class Table {
      * Removes a token of a player from a grid slot.
      * @param player - the player the token belongs to.
      * @param slot   - the slot from which to remove the token.
-     * @return       - true iff a token was successfully removed.
      */
     public void removeToken(int player, int slot) {
         env.ui.removeToken(player, slot);
