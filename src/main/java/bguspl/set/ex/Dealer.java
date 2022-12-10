@@ -2,8 +2,8 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -121,8 +121,7 @@ public class Dealer implements Runnable {
      */
     private void sleepUntilWokenOrTimeout() {
         try {
-//            wait(env.config.tableDelayMillis);
-            Thread.sleep(3000);
+            wait(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
     }
 
@@ -137,7 +136,7 @@ public class Dealer implements Runnable {
      * Returns all the cards from the table to the deck.
      */
     private void removeAllCardsFromTable() {
-        for(int i = 0; i<12;i++) {
+        for(int i = 0; i < 12; i++) {
             //not sure about the correct index of the slot
             table.removeCard(i);
             deck.add(i);
@@ -149,28 +148,22 @@ public class Dealer implements Runnable {
      */
     private void announceWinners() {
         // collect winning players
-        List<Integer> potentialWinners = new ArrayList<>();
+        List<Integer> potentialWinners = new Vector<>();
         int maxScore = -1;
-        int counter = 0;
         //found the max score
         for(Player p : players){
-            Player check = p;
-            if(maxScore<check.getScore()) maxScore = check.getScore();
-        }
-        //saved the id's of all players with max score
-        for(Player p : players){
-            Player check = p;
-            if(check.getScore() == maxScore){
-                counter++;
+            if(maxScore < p.getScore()) {
+                potentialWinners.clear();
+                maxScore = p.getScore();
                 potentialWinners.add(p.id);
             }
+            else if (maxScore == p.getScore())
+                potentialWinners.add(p.id);
         }
-        //created and array
-        int [] winners = new int[counter];
-        int i = 0;
-        for(Integer p : potentialWinners){
-            winners[i] = p;
-            i++;
+        //created an array
+        int [] winners = new int[potentialWinners.size()];
+        for(int i = 0; i < potentialWinners.size(); i++){
+            winners[i] = potentialWinners.get(i);
         }
 
         env.ui.announceWinner(winners);
