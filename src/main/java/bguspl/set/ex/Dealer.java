@@ -166,6 +166,7 @@ public class Dealer implements Runnable {
     public void iGotASet(Player p, Vector<int> cards) {
         fairnessQueueCards.add(cards);
         fairnessQueuePlayers.add(p);
+        notifyAll(); //TODO check if this lines notifies all threads waiting for 'this' (as in - waiting for the dealer object to be notified)
     }
 
     /**
