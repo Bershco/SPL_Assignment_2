@@ -43,12 +43,16 @@ public class Dealer implements Runnable {
 
     private ConcurrentLinkedQueue<Vector<int>> fairnessQueueCards;
     private ConcurrentLinkedQueue<Player> fairnessQueuePlayers;
+    private boolean foundSet;
+    private Vector<int> theSet = null;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
         this.players = players;
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
+        fairnessQueueCards = new ConcurrentLinkedQueue<>();
+        fairnessQueuePlayers = new ConcurrentLinkedQueue<>();
     }
 
     /**
@@ -57,8 +61,21 @@ public class Dealer implements Runnable {
     @Override
     public void run() {
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " starting.");
+        //how many threads do I need of player? --> create an array of the player threads
+        //t1.start();
         while (!shouldFinish()) {
             placeCardsOnTable();
+            //TODO fix implementation
+            //start threads?
+/*            while(fairnessQueueCards!=null & !foundSet){
+                checkNextSet();
+                if(foundSet){
+                    removeCardsFromTable();
+                    placeCardsOnTable();
+                    updateTimerDisplay(true); //reset countdown
+                    sleepUntilWokenOrTimeout(); //player must wake me up?
+                }
+            } // after I found a set I want the player to choose again*///-->incorrect implementation
             timerLoop();
             updateTimerDisplay(false);
             removeAllCardsFromTable();
@@ -67,21 +84,7 @@ public class Dealer implements Runnable {
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
     }
 
-    private void checkNextSet() {
-        try {
-            Vector<int> cards = fairnessQueueCards.remove();
-            Player p = fairnessQueuePlayers.remove();
-            int[] cardsAsArray = new int[cards.size()];
-            for (int i = 0; i < cards.size(); i++) {
-                cardsAsArray[i] = cards.get(i);
-            }
-            if (env.util.testSet(cardsAsArray))
-                p.point();
-            else
-                p.penalty();
-            cards.notifyAll();
-        } catch (NoSuchElementException ignored) {}
-    }
+
 
     /**
      * The inner loop of the dealer thread that runs as long as the countdown did not time out.
@@ -92,6 +95,7 @@ public class Dealer implements Runnable {
             updateTimerDisplay(false);
             removeCardsFromTable();
             placeCardsOnTable();
+
         }
     }
 
@@ -119,7 +123,18 @@ public class Dealer implements Runnable {
      * Checks cards should be removed from the table and removes them.
      */
     private void removeCardsFromTable() {
-        // TODO implement
+        //for each player check the set-->
+        //TODO FIXXXXXXXXXXXXXX
+        //I need to call the check set here probably
+       if(theSet!=null){
+           for(int id: theSet){
+               table.removeCard(table.cardToSlot[id]);
+           }
+           foundSet = false;
+           theSet = null;
+           fairnessQueueCards.clear();
+           fairnessQueuePlayers.clear();
+       }
     }
 
     /**
@@ -140,6 +155,7 @@ public class Dealer implements Runnable {
      * Sleep for a fixed amount of time or until the thread is awakened for some purpose.
      */
     private void sleepUntilWokenOrTimeout() {
+        //TODO : CHECK IF CORRECT PROBABLY NOT
         try {
             wait(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
@@ -168,6 +184,23 @@ public class Dealer implements Runnable {
         fairnessQueuePlayers.add(p);
         notifyAll(); //TODO check if this lines notifies all threads waiting for 'this' (as in - waiting for the dealer object to be notified)
     }
+    private void checkNextSet() { //changed some things here in order to be able to remove the cards
+        try {
+            Vector<int> cards = fairnessQueueCards.remove();
+            Player p = fairnessQueuePlayers.remove();
+            int[] cardsAsArray = new int[cards.size()];
+            for (int i = 0; i < cards.size(); i++) {
+                cardsAsArray[i] = cards.get(i);
+            }
+            if (env.util.testSet(cardsAsArray))
+            {p.point(); theSet = cards; foundSet = true;}
+            else{
+                p.penalty(); foundSet = false; theSet = null; }
+            cards.notifyAll();
+
+        } catch (NoSuchElementException ignored) {}
+
+    }
 
     /**
      * Check who is/are the winner/s and displays them.
@@ -191,10 +224,7 @@ public class Dealer implements Runnable {
         for(int i = 0; i < potentialWinners.size(); i++){
             winners[i] = potentialWinners.get(i);
         }
-        /*
-        hey lizette, as I said, I removed one loop and made so that it's the exact same logic but instead of all the things that were before it's a bit more simplistic
-        I think that's it, there's nothing really more to it.
-         */
+
         env.ui.announceWinner(winners);
     }
 }
