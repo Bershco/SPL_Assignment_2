@@ -59,7 +59,7 @@ public class Player implements Runnable {
     private int score;
 
 
-    private final ConcurrentLinkedQueue<int> incomingActions;
+    private final ConcurrentLinkedQueue<Integer> incomingActions;
 
     private final boolean[] tokenOnSlot;
     private int tokensPlaced;
@@ -79,7 +79,7 @@ public class Player implements Runnable {
         this.id = id;
         this.human = human;
         this.dealer = dealer;
-        incomingActions = new ConcurrentLinkedQueue<int>();
+        incomingActions = new ConcurrentLinkedQueue<Integer>();
         tokenOnSlot = new boolean[env.config.rows * env.config.columns];
         tokensPlaced = 0;
     }
@@ -95,7 +95,7 @@ public class Player implements Runnable {
 
         while (!terminate) {
             // TODO check if proper
-            try {
+       /*     try {
                 int nextAction = incomingActions.remove();
                 if (tokenOnSlot[nextAction]) {
                     table.removeToken(id,nextAction);
@@ -106,7 +106,7 @@ public class Player implements Runnable {
                     table.placeToken(id,nextAction);
                     tokenOnSlot[nextAction] = true;
                     if (++tokensPlaced == table.legalSetSize) {
-                        Vector<int> cards = new Vector<int>();
+                        Vector<Integer> cards = new Vector<Integer>();
                         dealer.iGotASet(this, cards);
                         try {
                             cards.wait();
@@ -118,7 +118,7 @@ public class Player implements Runnable {
                 try {
                     incomingActions.wait();
                 } catch (InterruptedException ignored1) {}
-            }
+            }*/
         }
         if (!human)
             while (aiThread.isAlive())

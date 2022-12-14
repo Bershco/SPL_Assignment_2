@@ -41,10 +41,10 @@ public class Dealer implements Runnable {
      */
     private long reshuffleTime = Long.MAX_VALUE;
 
-    private ConcurrentLinkedQueue<Vector<int>> fairnessQueueCards;
+    private ConcurrentLinkedQueue<Vector<Integer>> fairnessQueueCards;
     private ConcurrentLinkedQueue<Player> fairnessQueuePlayers;
     private boolean foundSet;
-    private Vector<int> theSet = null;
+    private Vector<Integer> theSet = null;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -63,19 +63,13 @@ public class Dealer implements Runnable {
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " starting.");
         //how many threads do I need of player? --> create an array of the player threads
         //t1.start();
+        Thread [] playerThreads = new Thread[players.length];
+        for(int i = 0 ; i< playerThreads.length; i++){
+            playerThreads[i] = new Thread(players[i]);
+            playerThreads[i].start();
+        }
         while (!shouldFinish()) {
             placeCardsOnTable();
-            //TODO fix implementation
-            //start threads?
-/*            while(fairnessQueueCards!=null & !foundSet){
-                checkNextSet();
-                if(foundSet){
-                    removeCardsFromTable();
-                    placeCardsOnTable();
-                    updateTimerDisplay(true); //reset countdown
-                    sleepUntilWokenOrTimeout(); //player must wake me up?
-                }
-            } // after I found a set I want the player to choose again*///-->incorrect implementation
             timerLoop();
             updateTimerDisplay(false);
             removeAllCardsFromTable();
@@ -95,7 +89,6 @@ public class Dealer implements Runnable {
             updateTimerDisplay(false);
             removeCardsFromTable();
             placeCardsOnTable();
-
         }
     }
 
@@ -126,12 +119,16 @@ public class Dealer implements Runnable {
         //for each player check the set-->
         //TODO FIXXXXXXXXXXXXXX
         //I need to call the check set here probably
-       if(theSet!=null){
+        while(!foundSet){
+            checkNextSet();
+        }
+       if(foundSet){
            for(int id: theSet){
                table.removeCard(table.cardToSlot[id]);
            }
            foundSet = false;
            theSet = null;
+           //TODO : what to do with two identical sets
            fairnessQueueCards.clear();
            fairnessQueuePlayers.clear();
        }
@@ -155,7 +152,7 @@ public class Dealer implements Runnable {
      * Sleep for a fixed amount of time or until the thread is awakened for some purpose.
      */
     private void sleepUntilWokenOrTimeout() {
-        //TODO : CHECK IF CORRECT PROBABLY NOT
+        //TODO : check how to fix
         try {
             wait(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
@@ -179,13 +176,13 @@ public class Dealer implements Runnable {
         }
     }
 
-    public void iGotASet(Player p, Vector<int> cards) {
+    public void iGotASet(Player p, Vector<Integer> cards) {
         fairnessQueueCards.add(cards);
         fairnessQueuePlayers.add(p);
     }
     private void checkNextSet() { //changed some things here in order to be able to remove the cards
         try {
-            Vector<int> cards = fairnessQueueCards.remove();
+            Vector<Integer> cards = fairnessQueueCards.remove();
             Player p = fairnessQueuePlayers.remove();
             int[] cardsAsArray = new int[cards.size()];
             for (int i = 0; i < cards.size(); i++) {
