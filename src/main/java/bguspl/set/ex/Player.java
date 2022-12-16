@@ -94,7 +94,8 @@ public class Player implements Runnable {
         if (!human) createArtificialIntelligence();
         while (!terminate) {
             // TODO check if proper
-       /*     try {
+
+            try {
                 int nextAction = incomingActions.remove();
                 if (tokenOnSlot[nextAction]) {
                     table.removeToken(id,nextAction);
@@ -106,17 +107,31 @@ public class Player implements Runnable {
                     tokenOnSlot[nextAction] = true;
                     if (++tokensPlaced == table.legalSetSize) {
                         Vector<Integer> cards = new Vector<Integer>();
+                        //TODO: something is wrong the second time we send the vector
+                        for(int i = 0; i<tokenOnSlot.length; i++){
+                            if(tokenOnSlot[i]){
+                                cards.add(table.slotToCard[i]);
+                                tokenOnSlot[i] = false;
+                            }
+                        }
                         dealer.iGotASet(this, cards);
-                        try {
-                            cards.wait();
-                        } catch (InterruptedException ignored) {}
+                        // by the way anywhere where we used wait I had to add the synchronized
+                        synchronized (cards){
+                            try {
+                                cards.wait();
+                            } catch (InterruptedException ignored) {}
+                        }
+
                     }
                 }
             } catch (NoSuchElementException ignored) {
-                try {
-                    incomingActions.wait();
-                } catch (InterruptedException ignored1) {}
-            }*/
+                synchronized (incomingActions){
+                    try {
+                        incomingActions.wait();
+                    } catch (InterruptedException ignored1) {}
+                }
+
+            }
         }
         if (!human)
             while (aiThread.isAlive())
@@ -170,7 +185,9 @@ public class Player implements Runnable {
         //TODO check what should happen if more than 3 actions are attempted to be inserted before the player thread attempts to remove them from the queue
         if (incomingActions.size() < 3) {
             incomingActions.add(slot);
-            incomingActions.notifyAll();
+            synchronized (incomingActions){
+                incomingActions.notifyAll();
+            }
         }
     }
 
@@ -185,9 +202,12 @@ public class Player implements Runnable {
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
         env.ui.setFreeze(id,env.config.pointFreezeMillis);
-        try {
-            playerThread.wait(env.config.pointFreezeMillis); //TODO check if this needs to be playerThread or currentThread()
-        } catch (InterruptedException ignored1) {}
+        synchronized (playerThread){
+            try {
+                playerThread.wait(env.config.pointFreezeMillis); //TODO check if this needs to be playerThread or currentThread()
+            } catch (InterruptedException ignored1) {}
+        }
+
     }
 
     /**
@@ -195,10 +215,20 @@ public class Player implements Runnable {
      */
     public void penalty() {
         // TODO check if proper
+
         env.ui.setFreeze(id,env.config.penaltyFreezeMillis);
-        try {
-            playerThread.wait(env.config.penaltyFreezeMillis); //TODO check if this needs to be playerThread or currentThread()
-        } catch (InterruptedException ignored1) {}
+        synchronized (playerThread){
+            try {
+
+                playerThread.wait(env.config.penaltyFreezeMillis); //TODO check if this needs to be playerThread or currentThread()
+            } catch (InterruptedException ignored1) {}
+        }
+
+    }
+    public void removeMyTokens(Vector<Integer> cards){
+        for(Integer cid: cards){
+            table.removeToken(id,table.cardToSlot[cid]);
+        }
     }
 
     public int getScore() {

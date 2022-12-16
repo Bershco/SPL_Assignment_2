@@ -106,11 +106,16 @@ public class Table {
      * @param slot - the slot from which to remove the card.
      */
     public void removeCard(int slot) {
-        try {
-            Thread.currentThread().wait(env.config.tableDelayMillis);
-        } catch (InterruptedException ignored) {}
+        int id = slotToCard[slot];
+        cardToSlot[id] = null;
+        slotToCard[slot] = null;
+        synchronized (this){
+            try {
+                this.wait(env.config.tableDelayMillis);
+            } catch (InterruptedException ignored) {}
+        }
 
-        // TODO implement
+        env.ui.removeCard(slot);
     }
 
     /**
