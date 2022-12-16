@@ -2,6 +2,7 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Vector;
@@ -68,8 +69,15 @@ public class Dealer implements Runnable {
             playerThreads[i] = new Thread(players[i]);
             playerThreads[i].start();
         }
+        updateTimerDisplay(true);
         while (!shouldFinish()) {
+
             placeCardsOnTable();
+            while(!checkIfsetExists()){
+                placeCardsOnTable();
+                updateTimerDisplay(true);
+            }
+
             timerLoop();
             updateTimerDisplay(false);
             removeAllCardsFromTable();
@@ -86,7 +94,11 @@ public class Dealer implements Runnable {
     private void timerLoop() {
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             sleepUntilWokenOrTimeout();
-            updateTimerDisplay(false);
+            //TODO: check where timer should be and how to update it correctly
+          /*  while(System.currentTimeMillis() < reshuffleTime){
+                updateTimerDisplay(false);
+            }*/
+            //updateTimerDisplay(false);
             removeCardsFromTable();
             placeCardsOnTable();
         }
@@ -100,7 +112,6 @@ public class Dealer implements Runnable {
         for(Player p : players){
             p.terminate();
         }
-        // TODO not sure if I need to update table + ui
     }
 
     /**
@@ -116,9 +127,7 @@ public class Dealer implements Runnable {
      * Checks cards should be removed from the table and removes them.
      */
     private void removeCardsFromTable() {
-        //for each player check the set-->
-        //TODO FIXXXXXXXXXXXXXX
-        //I need to call the check set here probably
+        //TODO: must fix the problem if two sets have some or all tokens that are going to be removed (identical sets or partially identical when one is the set that gonna be removed
         while(!foundSet){
             checkNextSet();
         }
@@ -127,11 +136,11 @@ public class Dealer implements Runnable {
                table.removeCard(table.cardToSlot[id]);
            }
            foundSet = false;
-           theSet = null;
-           //TODO : what to do with two identical sets
+
            fairnessQueueCards.clear();
            fairnessQueuePlayers.clear();
        }
+       placeCardsOnTable();
     }
 
     /**
@@ -153,16 +162,28 @@ public class Dealer implements Runnable {
      */
     private void sleepUntilWokenOrTimeout() {
         //TODO : check how to fix
-        try {
-            wait(env.config.tableDelayMillis);
-        } catch (InterruptedException ignored) {}
+        synchronized (this){
+            try {
+                this.wait(env.config.tableDelayMillis);
+            } catch (InterruptedException ignored) {}
+        }
+
     }
 
     /**
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
-        env.ui.setCountdown(0,reset);
+        if(reset) {
+            env.ui.setCountdown(env.config.turnTimeoutMillis, false);
+            reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
+        }
+        else if(reshuffleTime - System.currentTimeMillis() >= env.config.turnTimeoutWarningMillis){
+            env.ui.setCountdown(reshuffleTime - System.currentTimeMillis(),false);
+            }
+        else{
+            env.ui.setCountdown(reshuffleTime - System.currentTimeMillis(),true);
+        }
     }
 
     /**
@@ -179,6 +200,9 @@ public class Dealer implements Runnable {
     public void iGotASet(Player p, Vector<Integer> cards) {
         fairnessQueueCards.add(cards);
         fairnessQueuePlayers.add(p);
+        synchronized (this){
+            notifyAll();
+        }
     }
     private void checkNextSet() { //changed some things here in order to be able to remove the cards
         try {
@@ -189,13 +213,27 @@ public class Dealer implements Runnable {
                 cardsAsArray[i] = cards.get(i);
             }
             if (env.util.testSet(cardsAsArray))
-            {p.point(); theSet = cards; foundSet = true;}
+            {p.point(); theSet = cards; foundSet = true; p.removeMyTokens(cards);}
             else{
-                p.penalty(); foundSet = false; theSet = null; }
-            cards.notifyAll();
+                p.penalty(); foundSet = false; p.removeMyTokens(cards); theSet = null; }
+            synchronized (cards){
+                cards.notifyAll();
+            }
+
 
         } catch (NoSuchElementException ignored) {}
 
+    }
+    private boolean checkIfsetExists(){
+        List<Integer> currentTable = new LinkedList<>();
+        for(int i = 0; i<table.slotToCard.length; i++){
+            currentTable.add(table.slotToCard[i]);
+        }
+        List<int[]> sets = env.util.findSets(currentTable,1);
+        if(sets.isEmpty()){
+            return false;
+        }
+        return true;
     }
 
     /**
