@@ -1,0 +1,34 @@
+[2022-12-16 21:24:22] [INFO   ] cannot read configuration file config.properties trying from resources.
+[2022-12-16 21:24:22] [INFO   ] configuration file was loaded from resources directory.
+[2022-12-16 21:24:22] [INFO   ] Thread dealer starting.
+[2022-12-16 21:24:22] [INFO   ] Thread Thread-0starting.
+[2022-12-16 21:24:22] [INFO   ] Thread Thread-1starting.
+[2022-12-16 21:24:22] [SEVERE ] placing card 72 in slot 0
+[2022-12-16 21:24:22] [SEVERE ] placing card 63 in slot 1
+[2022-12-16 21:24:23] [SEVERE ] placing card 44 in slot 2
+[2022-12-16 21:24:23] [SEVERE ] placing card 12 in slot 3
+[2022-12-16 21:24:23] [SEVERE ] placing card 80 in slot 4
+[2022-12-16 21:24:23] [SEVERE ] placing card 20 in slot 5
+[2022-12-16 21:24:23] [SEVERE ] placing card 3 in slot 6
+[2022-12-16 21:24:23] [SEVERE ] placing card 36 in slot 7
+[2022-12-16 21:24:23] [SEVERE ] placing card 32 in slot 8
+[2022-12-16 21:24:23] [SEVERE ] placing card 34 in slot 9
+[2022-12-16 21:24:23] [SEVERE ] placing card 43 in slot 10
+[2022-12-16 21:24:24] [SEVERE ] placing card 16 in slot 11
+[2022-12-16 21:24:56] [SEVERE ] Key 68 was pressed by player 0
+[2022-12-16 21:24:56] [SEVERE ] player 0 placing token on slot 6
+[2022-12-16 21:24:56] [SEVERE ] Key 67 was pressed by player 0
+[2022-12-16 21:24:56] [SEVERE ] player 0 placing token on slot 10
+[2022-12-16 21:24:58] [SEVERE ] Key 81 was pressed by player 0
+[2022-12-16 21:24:58] [SEVERE ] player 0 placing token on slot 0
+[2022-12-16 21:24:58] [SEVERE ] setting player 0 freeze to 3000
+[2022-12-16 21:25:01] [SEVERE ] removing player 0 token from slot 0
+[2022-12-16 21:25:01] [SEVERE ] removing player 0 token from slot 6
+[2022-12-16 21:25:01] [SEVERE ] removing player 0 token from slot 10
+[2022-12-16 21:25:05] [SEVERE ] Key 68 was pressed by player 0
+[2022-12-16 21:25:05] [SEVERE ] player 0 placing token on slot 6
+[2022-12-16 21:25:12] [SEVERE ] Key 67 was pressed by player 0
+[2022-12-16 21:25:12] [SEVERE ] player 0 placing token on slot 10
+[2022-12-16 21:25:12] [SEVERE ] Key 65 was pressed by player 0
+[2022-12-16 21:25:12] [SEVERE ] player 0 placing token on slot 4
+[2022-12-16 21:25:19] [SEVERE ] Exit button pressed

@@ -1,0 +1,41 @@
+[2022-12-16 21:41:34] [INFO   ] cannot read configuration file config.properties trying from resources.
+[2022-12-16 21:41:34] [INFO   ] configuration file was loaded from resources directory.
+[2022-12-16 21:41:34] [INFO   ] Thread dealer starting.
+[2022-12-16 21:41:34] [INFO   ] Thread Thread-0starting.
+[2022-12-16 21:41:34] [INFO   ] Thread Thread-1starting.
+[2022-12-16 21:41:34] [SEVERE ] placing card 1 in slot 0
+[2022-12-16 21:41:35] [SEVERE ] placing card 29 in slot 1
+[2022-12-16 21:41:35] [SEVERE ] placing card 44 in slot 2
+[2022-12-16 21:41:35] [SEVERE ] placing card 41 in slot 3
+[2022-12-16 21:41:35] [SEVERE ] placing card 31 in slot 4
+[2022-12-16 21:41:35] [SEVERE ] placing card 72 in slot 5
+[2022-12-16 21:41:35] [SEVERE ] placing card 67 in slot 6
+[2022-12-16 21:41:35] [SEVERE ] placing card 79 in slot 7
+[2022-12-16 21:41:35] [SEVERE ] placing card 36 in slot 8
+[2022-12-16 21:41:35] [SEVERE ] placing card 51 in slot 9
+[2022-12-16 21:41:36] [SEVERE ] placing card 49 in slot 10
+[2022-12-16 21:41:36] [SEVERE ] placing card 4 in slot 11
+[2022-12-16 21:41:46] [SEVERE ] Key 86 was pressed by player 0
+[2022-12-16 21:41:46] [SEVERE ] player 0 placing token on slot 11
+[2022-12-16 21:41:47] [SEVERE ] Key 67 was pressed by player 0
+[2022-12-16 21:41:47] [SEVERE ] player 0 placing token on slot 10
+[2022-12-16 21:41:47] [SEVERE ] Key 68 was pressed by player 0
+[2022-12-16 21:41:47] [SEVERE ] player 0 placing token on slot 6
+[2022-12-16 21:41:47] [SEVERE ] setting player 0 score to 1
+[2022-12-16 21:41:47] [SEVERE ] setting player 0 freeze to 1000
+[2022-12-16 21:41:48] [SEVERE ] removing player 0 token from slot 6
+[2022-12-16 21:41:48] [SEVERE ] removing player 0 token from slot 10
+[2022-12-16 21:41:48] [SEVERE ] removing player 0 token from slot 11
+[2022-12-16 21:41:48] [SEVERE ] removing card from slot 6
+[2022-12-16 21:41:48] [SEVERE ] removing card from slot 10
+[2022-12-16 21:41:48] [SEVERE ] removing card from slot 11
+[2022-12-16 21:41:48] [SEVERE ] placing card 22 in slot 6
+[2022-12-16 21:41:48] [SEVERE ] placing card 14 in slot 10
+[2022-12-16 21:41:48] [SEVERE ] placing card 21 in slot 11
+[2022-12-16 21:44:21] [SEVERE ] Key 82 was pressed by player 0
+[2022-12-16 21:44:21] [SEVERE ] player 0 placing token on slot 3
+[2022-12-16 21:44:22] [SEVERE ] Key 69 was pressed by player 0
+[2022-12-16 21:44:22] [SEVERE ] player 0 placing token on slot 2
+[2022-12-16 21:44:23] [SEVERE ] Key 87 was pressed by player 0
+[2022-12-16 21:44:23] [SEVERE ] player 0 placing token on slot 1
+[2022-12-16 21:44:47] [SEVERE ] Exit button pressed
