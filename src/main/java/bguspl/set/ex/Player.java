@@ -92,7 +92,6 @@ public class Player implements Runnable {
         playerThread = Thread.currentThread();
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + "starting.");
         if (!human) createArtificialIntelligence();
-
         while (!terminate) {
             // TODO check if proper
 
@@ -125,7 +124,6 @@ public class Player implements Runnable {
 
                     }
                 }
-
             } catch (NoSuchElementException ignored) {
                 synchronized (incomingActions){
                     try {
@@ -170,7 +168,7 @@ public class Player implements Runnable {
      * Called when the game should be terminated due to an external event.
      */
     public void terminate() {
-        // TODO check if proper
+        //TODO check if proper
         terminate = true;
         while (playerThread.isAlive())
             try {
@@ -184,7 +182,7 @@ public class Player implements Runnable {
      * @param slot - the slot corresponding to the key pressed.
      */
     public void keyPressed(int slot) {
-        // TODO check if proper
+        //TODO check what should happen if more than 3 actions are attempted to be inserted before the player thread attempts to remove them from the queue
         if (incomingActions.size() < 3) {
             incomingActions.add(slot);
             synchronized (incomingActions){
