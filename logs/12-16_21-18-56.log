@@ -1,0 +1,33 @@
+[2022-12-16 21:18:56] [INFO   ] cannot read configuration file config.properties trying from resources.
+[2022-12-16 21:18:56] [INFO   ] configuration file was loaded from resources directory.
+[2022-12-16 21:18:56] [INFO   ] Thread dealer starting.
+[2022-12-16 21:18:56] [INFO   ] Thread Thread-0starting.
+[2022-12-16 21:18:56] [INFO   ] Thread Thread-1starting.
+[2022-12-16 21:18:57] [SEVERE ] placing card 44 in slot 0
+[2022-12-16 21:18:57] [SEVERE ] placing card 5 in slot 1
+[2022-12-16 21:18:57] [SEVERE ] placing card 18 in slot 2
+[2022-12-16 21:18:57] [SEVERE ] placing card 42 in slot 3
+[2022-12-16 21:18:57] [SEVERE ] placing card 58 in slot 4
+[2022-12-16 21:18:57] [SEVERE ] placing card 32 in slot 5
+[2022-12-16 21:18:57] [SEVERE ] placing card 56 in slot 6
+[2022-12-16 21:18:57] [SEVERE ] placing card 36 in slot 7
+[2022-12-16 21:18:57] [SEVERE ] placing card 53 in slot 8
+[2022-12-16 21:18:57] [SEVERE ] placing card 46 in slot 9
+[2022-12-16 21:18:58] [SEVERE ] placing card 29 in slot 10
+[2022-12-16 21:18:58] [SEVERE ] placing card 80 in slot 11
+[2022-12-16 21:20:02] [SEVERE ] Key 87 was pressed by player 0
+[2022-12-16 21:20:02] [SEVERE ] player 0 placing token on slot 1
+[2022-12-16 21:20:03] [SEVERE ] Key 87 was pressed by player 0
+[2022-12-16 21:20:03] [SEVERE ] removing player 0 token from slot 1
+[2022-12-16 21:20:03] [SEVERE ] Key 69 was pressed by player 0
+[2022-12-16 21:20:03] [SEVERE ] player 0 placing token on slot 2
+[2022-12-16 21:20:06] [SEVERE ] Key 81 was pressed by player 0
+[2022-12-16 21:20:06] [SEVERE ] player 0 placing token on slot 0
+[2022-12-16 21:20:11] [SEVERE ] Key 65 was pressed by player 0
+[2022-12-16 21:20:11] [SEVERE ] player 0 placing token on slot 4
+[2022-12-16 21:20:11] [SEVERE ] setting player 0 score to 1
+[2022-12-16 21:20:11] [SEVERE ] setting player 0 freeze to 1000
+[2022-12-16 21:20:12] [SEVERE ] removing player 0 token from slot 0
+[2022-12-16 21:20:12] [SEVERE ] removing player 0 token from slot 2
+[2022-12-16 21:20:12] [SEVERE ] removing player 0 token from slot 4
+[2022-12-16 21:20:12] [INFO   ] Thread main terminated.
