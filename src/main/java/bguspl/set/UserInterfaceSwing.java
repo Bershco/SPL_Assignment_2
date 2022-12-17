@@ -1,34 +1,35 @@
 package bguspl.set;
 
+import bguspl.set.ex.Player;
+
 import javax.swing.*;
 import java.awt.*;
 import java.io.FileNotFoundException;
 import java.net.URL;
 import java.util.Arrays;
-import java.util.logging.Level;
+import java.util.List;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 
 /**
  * Java Swing implementation of the UserInterface interface.
  */
-public class UserInterfaceImpl extends JFrame implements UserInterface {
+public class UserInterfaceSwing extends JFrame implements UserInterface {
 
     private final TimerPanel timerPanel;
     private final GamePanel gamePanel;
     private final PlayersPanel playersPanel;
     private final WinnerPanel winnerPanel;
-    private final Logger logger;
     private final Config config;
 
     static String intInBaseToPaddedString(int n, int padding, int base) {
         return format("%" + padding + "s", Integer.toString(n, base)).replace(' ', '0');
     }
 
-    public UserInterfaceImpl(Logger logger, Config config) {
+    public UserInterfaceSwing(Logger logger, Config config, Player[] players) {
 
-        this.logger = logger;
         this.config = config;
         timerPanel = new TimerPanel();
         gamePanel = new GamePanel();
@@ -61,6 +62,11 @@ public class UserInterfaceImpl extends JFrame implements UserInterface {
         setTitle("Set Card Game");
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        addKeyListener(new InputManager(logger, config, players));
+        addWindowListener(new WindowManager());
+
+        EventQueue.invokeLater(() -> setVisible(true));
     }
 
     private class TimerPanel extends JPanel {
@@ -143,7 +149,6 @@ public class UserInterfaceImpl extends JFrame implements UserInterface {
         }
 
         private void placeCard(int slot, int card) {
-            logger.log(Level.SEVERE, "placing card " + card + " in slot " + slot);
             int row = slot / config.columns;
             int column = slot % config.columns;
             grid[row][column] = deck[card];
@@ -152,7 +157,6 @@ public class UserInterfaceImpl extends JFrame implements UserInterface {
         }
 
         private void removeCard(int slot) {
-            logger.log(Level.SEVERE, "removing card from slot " + slot);
             int row = slot / config.columns;
             int column = slot % config.columns;
             grid[row][column] = emptyCard;
@@ -161,7 +165,6 @@ public class UserInterfaceImpl extends JFrame implements UserInterface {
         }
 
         private void placeToken(int player, int slot) {
-            logger.log(Level.SEVERE, "player " + player + " placing token on slot " + slot);
             int row = slot / config.columns;
             int column = slot % config.columns;
             playerTokens[player][row][column] = true;
@@ -169,13 +172,11 @@ public class UserInterfaceImpl extends JFrame implements UserInterface {
         }
 
         private void removeTokens() {
-            logger.log(Level.SEVERE, "removing all tokens");
             for (int i = 0; i < config.tableSize; i++)
                 removeTokens(i);
         }
 
         private void removeTokens(int slot) {
-            logger.log(Level.SEVERE, "removing tokens from slot " + slot);
             int row = slot / config.columns;
             int column = slot % config.columns;
             for (int player = 0; player < playerTokens.length; player++) {
@@ -185,7 +186,6 @@ public class UserInterfaceImpl extends JFrame implements UserInterface {
         }
 
         private void removeToken(int player, int slot) {
-            logger.log(Level.SEVERE, "removing player " + player + " token from slot " + slot);
             int row = slot / config.columns;
             int column = slot % config.columns;
             playerTokens[player][row][column] = false;
@@ -205,7 +205,6 @@ public class UserInterfaceImpl extends JFrame implements UserInterface {
 
         @Override
         public void paintComponent(Graphics g) {
-
             // draw card images
             for (int row = 0; row < config.rows; row++)
                 for (int column = 0; column < config.columns; column++)
@@ -219,7 +218,7 @@ public class UserInterfaceImpl extends JFrame implements UserInterface {
 
         private PlayersPanel() {
             this.setLayout(new GridLayout(2, config.players));
-            this.setPreferredSize(new Dimension(config.players * config.PlayerCellWidth, config.rows * config.PlayerCellHeight));
+            this.setPreferredSize(new Dimension(config.players * config.playerCellWidth, config.rows * config.playerCellHeight));
             this.playersTable = new JLabel[2][config.players];
             for (int i = 0; i < config.players; i++) {
                 this.playersTable[0][i] = new JLabel(config.playerNames[i]);
@@ -236,13 +235,7 @@ public class UserInterfaceImpl extends JFrame implements UserInterface {
             }
         }
 
-        private void setScore(int player, int score) {
-            logger.log(Level.SEVERE, "setting player " + player + " score to " + score);
-            playersTable[1][player].setText(Integer.toString(score));
-        }
-
         private void setFreeze(int player, long millies) {
-            logger.log(Level.SEVERE, "setting player " + player + " freeze to " + millies);
             if (millies > 0) {
                 this.playersTable[0][player].setText(config.playerNames[player] + " (" + millies / 1000 + ")");
                 this.playersTable[0][player].setForeground(Color.RED);
@@ -250,6 +243,10 @@ public class UserInterfaceImpl extends JFrame implements UserInterface {
                 this.playersTable[0][player].setText(config.playerNames[player]);
                 this.playersTable[0][player].setForeground(Color.BLACK);
             }
+        }
+
+        private void setScore(int player, int score) {
+            playersTable[1][player].setText(Integer.toString(score));
         }
     }
 
@@ -268,16 +265,11 @@ public class UserInterfaceImpl extends JFrame implements UserInterface {
         }
 
         private void announceWinner(int[] players) {
-            logger.log(Level.SEVERE, "announcing winners: " + Arrays.toString(players));
-            if (players.length == 1)
-                winnerAnnouncement.setText("THE WINNER IS: " + config.playerNames[players[0]] + "!!!");
-            else {
-                String text = "";
-                for (int player : players)
-                    text = text.concat(config.playerNames[player] + " AND ");
-                text = text.substring(0, text.length() - 5);
-                winnerAnnouncement.setText("IT IS A DRAW: " + text + " WON!!!");
-            }
+            String text;
+            List<String> names = Arrays.stream(players).mapToObj(id -> config.playerNames[id]).collect(Collectors.toList());
+            if (players.length == 1) text = "THE WINNER IS: " + names.get(0) + "!!!";
+            else text = "IT IS A DRAW: " + String.join(" AND ", names) + " WON!!!";
+            winnerAnnouncement.setText(text);
         }
     }
 
@@ -289,24 +281,6 @@ public class UserInterfaceImpl extends JFrame implements UserInterface {
     @Override
     public void removeCard(int slot) {
         gamePanel.removeCard(slot);
-    }
-
-    public void setCountdown(long millies, boolean warn) {
-        timerPanel.setCountdown(millies, warn);
-    }
-
-    public void setElapsed(long millies) {
-        timerPanel.setElapsed(millies);
-    }
-
-    @Override
-    public void setScore(int player, int score) {
-        playersPanel.setScore(player, score);
-    }
-
-    @Override
-    public void setFreeze(int player, long millies) {
-        playersPanel.setFreeze(player, millies);
     }
 
     @Override
@@ -330,9 +304,34 @@ public class UserInterfaceImpl extends JFrame implements UserInterface {
     }
 
     @Override
+    public void setCountdown(long millies, boolean warn) {
+        timerPanel.setCountdown(millies, warn);
+    }
+
+    @Override
+    public void setElapsed(long millies) {
+        timerPanel.setElapsed(millies);
+    }
+
+    @Override
+    public void setFreeze(int player, long millies) {
+        playersPanel.setFreeze(player, millies);
+    }
+
+    @Override
+    public void setScore(int player, int score) {
+        playersPanel.setScore(player, score);
+    }
+
+    @Override
     public void announceWinner(int[] players) {
         playersPanel.setVisible(false);
         winnerPanel.announceWinner(players);
         winnerPanel.setVisible(true);
+    }
+
+    @Override
+    public void dispose() {
+        super.dispose();
     }
 }

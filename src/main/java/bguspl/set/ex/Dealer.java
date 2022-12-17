@@ -2,6 +2,7 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
+import java.time.chrono.ThaiBuddhistEra;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -42,10 +43,11 @@ public class Dealer implements Runnable {
      */
     private long reshuffleTime = Long.MAX_VALUE;
 
-    private ConcurrentLinkedQueue<Vector<Integer>> fairnessQueueCards;
-    private ConcurrentLinkedQueue<Player> fairnessQueuePlayers;
+    private final ConcurrentLinkedQueue<Vector<Integer>> fairnessQueueCards;
+    private final ConcurrentLinkedQueue<Player> fairnessQueuePlayers;
     private boolean foundSet;
     private Vector<Integer> theSet = null;
+    private Thread dealerThread;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -61,6 +63,7 @@ public class Dealer implements Runnable {
      */
     @Override
     public void run() {
+        dealerThread = Thread.currentThread();
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " starting.");
         //how many threads do I need of player? --> create an array of the player threads
         //t1.start();
@@ -75,7 +78,7 @@ public class Dealer implements Runnable {
             placeCardsOnTable();
             while(!checkIfsetExists()){
                 placeCardsOnTable();
-                updateTimerDisplay(true);
+                updateTimerDisplay(false);
             }
 
             timerLoop();
@@ -109,9 +112,10 @@ public class Dealer implements Runnable {
      */
     public void terminate() {
         terminate = true;
-        for(Player p : players){
-            p.terminate();
-        }
+        for(int i = players.length - 1; i >= 0 ; i--)
+        //So that the player threads will be eliminated in reverse order to the order they were created by
+            players[i].terminate();
+        dealerThread.interrupt();
     }
 
     /**
@@ -129,7 +133,9 @@ public class Dealer implements Runnable {
     private void removeCardsFromTable() {
         //TODO: must fix the problem if two sets have some or all tokens that are going to be removed (identical sets or partially identical when one is the set that gonna be removed
         while(!foundSet){
-            checkNextSet();
+            synchronized (fairnessQueueCards) {
+                checkNextSet();
+            }
         }
        if(foundSet){
            for(int id: theSet){
@@ -178,12 +184,7 @@ public class Dealer implements Runnable {
             env.ui.setCountdown(env.config.turnTimeoutMillis, false);
             reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
         }
-        else if(reshuffleTime - System.currentTimeMillis() >= env.config.turnTimeoutWarningMillis){
-            env.ui.setCountdown(reshuffleTime - System.currentTimeMillis(),false);
-            }
-        else{
-            env.ui.setCountdown(reshuffleTime - System.currentTimeMillis(),true);
-        }
+        else env.ui.setCountdown(reshuffleTime - System.currentTimeMillis(), reshuffleTime - System.currentTimeMillis() < env.config.turnTimeoutWarningMillis);
     }
 
     /**
@@ -200,7 +201,6 @@ public class Dealer implements Runnable {
     public void iGotASet(Player p, Vector<Integer> cards) {
         fairnessQueueCards.add(cards);
         fairnessQueuePlayers.add(p);
-
         synchronized (this){
             notifyAll();
         }
@@ -232,10 +232,7 @@ public class Dealer implements Runnable {
             currentTable.add(table.slotToCard[i]);
         }
         List<int[]> sets = env.util.findSets(currentTable,1);
-        if(sets.isEmpty()){
-            return false;
-        }
-        return true;
+        return !sets.isEmpty();
     }
 
     /**
@@ -247,12 +244,12 @@ public class Dealer implements Runnable {
         int maxScore = -1;
         //found the max score
         for(Player p : players){
-            if(maxScore < p.getScore()) {
+            if(maxScore < p.score()) {
                 potentialWinners.clear();
-                maxScore = p.getScore();
+                maxScore = p.score();
                 potentialWinners.add(p.id);
             }
-            else if (maxScore == p.getScore())
+            else if (maxScore == p.score())
                 potentialWinners.add(p.id);
         }
         //created an array

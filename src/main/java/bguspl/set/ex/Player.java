@@ -168,12 +168,8 @@ public class Player implements Runnable {
      * Called when the game should be terminated due to an external event.
      */
     public void terminate() {
-        //TODO check if proper
         terminate = true;
-        while (playerThread.isAlive())
-            try {
-                playerThread.join();
-            } catch (InterruptedException ignored) {}
+        playerThread.interrupt();
     }
 
     /**
@@ -204,6 +200,7 @@ public class Player implements Runnable {
         env.ui.setFreeze(id,env.config.pointFreezeMillis);
         synchronized (playerThread){
             try {
+                System.out.println(Thread.currentThread().getName() + " is waiting for " + playerThread.getName());
                 playerThread.wait(env.config.pointFreezeMillis); //TODO check if this needs to be playerThread or currentThread()
             } catch (InterruptedException ignored1) {}
         }
@@ -231,7 +228,7 @@ public class Player implements Runnable {
         }
     }
 
-    public int getScore() {
+    public int score() {
         return score;
     }
 }
