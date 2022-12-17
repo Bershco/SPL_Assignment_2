@@ -200,9 +200,11 @@ public class Dealer implements Runnable {
     public void iGotASet(Player p, Vector<Integer> cards) {
         fairnessQueueCards.add(cards);
         fairnessQueuePlayers.add(p);
+
         synchronized (this){
             notifyAll();
         }
+
     }
     private void checkNextSet() { //changed some things here in order to be able to remove the cards
         try {
