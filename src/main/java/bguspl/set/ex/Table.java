@@ -110,7 +110,7 @@ public class Table {
         slotToCard[slot] = null;
         synchronized (this){
             try {
-                this.wait(env.config.tableDelayMillis);
+                wait(env.config.tableDelayMillis);
             } catch (InterruptedException ignored) {}
         }
 
@@ -134,6 +134,7 @@ public class Table {
      */
     public void removeToken(int player, int slot) {
         env.ui.removeToken(player, slot);
+
         // TODO check if enough
     }
 }

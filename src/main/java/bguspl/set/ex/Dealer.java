@@ -65,8 +65,7 @@ public class Dealer implements Runnable {
     public void run() {
         dealerThread = Thread.currentThread();
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " starting.");
-        //how many threads do I need of player? --> create an array of the player threads
-        //t1.start();
+
         Thread [] playerThreads = new Thread[players.length];
         for(int i = 0 ; i< playerThreads.length; i++){
             playerThreads[i] = new Thread(players[i]);
@@ -77,12 +76,12 @@ public class Dealer implements Runnable {
 
             placeCardsOnTable();
             while(!checkIfsetExists()){
+                removeAllCardsFromTable();
                 placeCardsOnTable();
-                updateTimerDisplay(false);
+                updateTimerDisplay(true);
             }
-
             timerLoop();
-            updateTimerDisplay(false);
+            updateTimerDisplay(true);
             removeAllCardsFromTable();
         }
         announceWinners();
@@ -141,10 +140,33 @@ public class Dealer implements Runnable {
            for(int id: theSet){
                table.removeCard(table.cardToSlot[id]);
            }
+           for (Player p : players){
+               boolean[] tokens = p.getTokenOnSlot();
+               Vector<Integer> toRemove = new Vector<>();
+               for(int i =0; i < tokens.length; i++){
+                   if(tokens[i] == true){
+                       if(theSet.contains(table.slotToCard[i])){
+                           toRemove.add(theSet.get(table.slotToCard[i]));
+                       }
+                   }
+               }
+               p.removeMyTokens(toRemove);
+           }
+           for(Vector<Integer> vector : fairnessQueueCards){
+               boolean firstRemove = false;
+               for(Integer card : theSet){
+                   if(vector.contains(card)&!firstRemove){
+                       fairnessQueueCards.remove(vector);
+
+                       fairnessQueuePlayers.remove();
+                       firstRemove = true;
+
+                   }
+               }
+           }
+
            foundSet = false;
 
-           fairnessQueueCards.clear();
-           fairnessQueuePlayers.clear();
        }
        placeCardsOnTable();
     }
@@ -199,23 +221,32 @@ public class Dealer implements Runnable {
     }
 
     public void iGotASet(Player p, Vector<Integer> cards) {
-        fairnessQueueCards.add(cards);
-        fairnessQueuePlayers.add(p);
-        synchronized (this){
-            notifyAll();
+        synchronized (fairnessQueueCards){
+            fairnessQueueCards.add(cards);
+            fairnessQueueCards.notifyAll();
         }
-
+        synchronized (fairnessQueuePlayers){
+            fairnessQueuePlayers.add(p);
+            fairnessQueuePlayers.notifyAll();
+        }
     }
     private void checkNextSet() { //changed some things here in order to be able to remove the cards
         try {
             Vector<Integer> cards = fairnessQueueCards.remove();
+            synchronized (fairnessQueueCards){
+                fairnessQueueCards.notifyAll();
+            }
             Player p = fairnessQueuePlayers.remove();
             int[] cardsAsArray = new int[cards.size()];
             for (int i = 0; i < cards.size(); i++) {
                 cardsAsArray[i] = cards.get(i);
             }
             if (env.util.testSet(cardsAsArray))
-            {p.point(); theSet = cards; foundSet = true; p.removeMyTokens(cards);}
+            {
+                synchronized (cards){
+                    p.point(); theSet = cards; foundSet = true; p.removeMyTokens(cards);
+                }
+                }
             else{
                 p.penalty(); foundSet = false; p.removeMyTokens(cards); theSet = null; }
             synchronized (cards){

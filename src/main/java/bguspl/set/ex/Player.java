@@ -83,7 +83,9 @@ public class Player implements Runnable {
         tokenOnSlot = new boolean[env.config.rows * env.config.columns];
         tokensPlaced = 0;
     }
-
+    public boolean[] getTokenOnSlot(){
+        return  tokenOnSlot;
+    }
     /**
      * The main player thread of each player starts here (main loop for the player thread).
      */
@@ -96,7 +98,12 @@ public class Player implements Runnable {
             // TODO check if proper
 
             try {
-                int nextAction = incomingActions.remove();
+                int nextAction;
+                synchronized (incomingActions){
+                    nextAction = incomingActions.remove();
+                    incomingActions.notifyAll();
+                }
+
                 if (tokenOnSlot[nextAction]) {
                     table.removeToken(id,nextAction);
                     tokenOnSlot[nextAction] = false;
@@ -180,8 +187,8 @@ public class Player implements Runnable {
     public void keyPressed(int slot) {
         //TODO check what should happen if more than 3 actions are attempted to be inserted before the player thread attempts to remove them from the queue
         if (incomingActions.size() < 3) {
-            incomingActions.add(slot);
             synchronized (incomingActions){
+                incomingActions.add(slot);
                 incomingActions.notifyAll();
             }
         }
@@ -226,6 +233,7 @@ public class Player implements Runnable {
         for(Integer cid: cards){
             table.removeToken(id,table.cardToSlot[cid]);
         }
+
     }
 
     public int score() {
