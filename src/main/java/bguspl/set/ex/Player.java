@@ -168,12 +168,11 @@ public class Player implements Runnable {
      * Called when the game should be terminated due to an external event.
      */
     public void terminate() {
-        //TODO check if proper
         terminate = true;
-        while (playerThread.isAlive())
-            try {
-                playerThread.join();
-            } catch (InterruptedException ignored) {}
+        while (playerThread.isAlive()) {
+            playerThread.interrupt();
+            System.out.println("Yes!");
+        }
     }
 
     /**
@@ -231,7 +230,7 @@ public class Player implements Runnable {
         }
     }
 
-    public int getScore() {
+    public int score() {
         return score;
     }
 }
