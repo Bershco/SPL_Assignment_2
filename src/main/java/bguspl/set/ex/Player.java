@@ -169,10 +169,7 @@ public class Player implements Runnable {
      */
     public void terminate() {
         terminate = true;
-        while (playerThread.isAlive()) {
-            playerThread.interrupt();
-            System.out.println("Yes!");
-        }
+        playerThread.interrupt();
     }
 
     /**
@@ -203,6 +200,7 @@ public class Player implements Runnable {
         env.ui.setFreeze(id,env.config.pointFreezeMillis);
         synchronized (playerThread){
             try {
+                System.out.println(Thread.currentThread().getName() + " is waiting for " + playerThread.getName());
                 playerThread.wait(env.config.pointFreezeMillis); //TODO check if this needs to be playerThread or currentThread()
             } catch (InterruptedException ignored1) {}
         }

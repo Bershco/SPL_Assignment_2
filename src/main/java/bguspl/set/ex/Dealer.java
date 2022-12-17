@@ -2,6 +2,7 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
+import java.time.chrono.ThaiBuddhistEra;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -42,8 +43,8 @@ public class Dealer implements Runnable {
      */
     private long reshuffleTime = Long.MAX_VALUE;
 
-    private ConcurrentLinkedQueue<Vector<Integer>> fairnessQueueCards;
-    private ConcurrentLinkedQueue<Player> fairnessQueuePlayers;
+    private final ConcurrentLinkedQueue<Vector<Integer>> fairnessQueueCards;
+    private final ConcurrentLinkedQueue<Player> fairnessQueuePlayers;
     private boolean foundSet;
     private Vector<Integer> theSet = null;
     private Thread dealerThread;
@@ -77,7 +78,7 @@ public class Dealer implements Runnable {
             placeCardsOnTable();
             while(!checkIfsetExists()){
                 placeCardsOnTable();
-                updateTimerDisplay(true);
+                updateTimerDisplay(false);
             }
 
             timerLoop();
@@ -111,12 +112,10 @@ public class Dealer implements Runnable {
      */
     public void terminate() {
         terminate = true;
-        for(Player p : players){
-            p.terminate();
-        }
-        while (dealerThread.isAlive()) {
-            dealerThread.interrupt();
-        }
+        for(int i = players.length - 1; i >= 0 ; i--)
+        //So that the player threads will be eliminated in reverse order to the order they were created by
+            players[i].terminate();
+        dealerThread.interrupt();
     }
 
     /**
@@ -134,7 +133,9 @@ public class Dealer implements Runnable {
     private void removeCardsFromTable() {
         //TODO: must fix the problem if two sets have some or all tokens that are going to be removed (identical sets or partially identical when one is the set that gonna be removed
         while(!foundSet){
-            checkNextSet();
+            synchronized (fairnessQueueCards) {
+                checkNextSet();
+            }
         }
        if(foundSet){
            for(int id: theSet){
@@ -231,10 +232,7 @@ public class Dealer implements Runnable {
             currentTable.add(table.slotToCard[i]);
         }
         List<int[]> sets = env.util.findSets(currentTable,1);
-        if(sets.isEmpty()){
-            return false;
-        }
-        return true;
+        return !sets.isEmpty();
     }
 
     /**
