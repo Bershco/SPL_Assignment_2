@@ -62,7 +62,7 @@ public class Dealer implements Runnable {
      * The dealer thread starts here (main loop for the dealer thread).
      */
     @Override
-    public void run() {
+    public void run() { //TODO: timer doesnt work for me
         dealerThread = Thread.currentThread();
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " starting.");
 
@@ -81,7 +81,7 @@ public class Dealer implements Runnable {
                 updateTimerDisplay(true);
             }
             timerLoop();
-            updateTimerDisplay(true);
+            updateTimerDisplay(false);
             removeAllCardsFromTable();
         }
         announceWinners();
@@ -96,11 +96,11 @@ public class Dealer implements Runnable {
     private void timerLoop() {
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             sleepUntilWokenOrTimeout();
-            //TODO: check where timer should be and how to update it correctly
+            //TODO: check where the dealer must wait
           /*  while(System.currentTimeMillis() < reshuffleTime){
                 updateTimerDisplay(false);
             }*/
-            //updateTimerDisplay(false);
+
             removeCardsFromTable();
             placeCardsOnTable();
         }
@@ -136,6 +136,7 @@ public class Dealer implements Runnable {
                 checkNextSet();
             }
         }
+       //TODO: somthing wrong doesnt remove other players tokens
        if(foundSet){
            for(int id: theSet){
                table.removeCard(table.cardToSlot[id]);
@@ -164,7 +165,7 @@ public class Dealer implements Runnable {
                    }
                }
            }
-
+           theSet = null;
            foundSet = false;
 
        }
@@ -243,10 +244,10 @@ public class Dealer implements Runnable {
             }
             if (env.util.testSet(cardsAsArray))
             {
-                synchronized (cards){
-                    p.point(); theSet = cards; foundSet = true; p.removeMyTokens(cards);
-                }
-                }
+
+                p.point(); theSet = cards; foundSet = true; p.removeMyTokens(cards);
+
+            }
             else{
                 p.penalty(); foundSet = false; p.removeMyTokens(cards); theSet = null; }
             synchronized (cards){

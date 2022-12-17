@@ -118,10 +118,10 @@ public class Player implements Runnable {
                         for(int i = 0; i<tokenOnSlot.length; i++){
                             if(tokenOnSlot[i]){
                                 cards.add(table.slotToCard[i]);
-                                tokenOnSlot[i] = false;
                             }
                         }
                         dealer.iGotASet(this, cards);
+
                         // by the way anywhere where we used wait I had to add the synchronized
                         synchronized (cards){
                             try {
@@ -203,6 +203,7 @@ public class Player implements Runnable {
     public void point() {
         // TODO check if proper
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
+
         env.ui.setScore(id, ++score);
         env.ui.setFreeze(id,env.config.pointFreezeMillis);
         synchronized (playerThread){
@@ -211,6 +212,7 @@ public class Player implements Runnable {
                 playerThread.wait(env.config.pointFreezeMillis); //TODO check if this needs to be playerThread or currentThread()
             } catch (InterruptedException ignored1) {}
         }
+
 
     }
 
@@ -232,6 +234,8 @@ public class Player implements Runnable {
     public void removeMyTokens(Vector<Integer> cards){
         for(Integer cid: cards){
             table.removeToken(id,table.cardToSlot[cid]);
+            tokensPlaced--;
+            tokenOnSlot[table.cardToSlot[cid]] = false;
         }
 
     }
