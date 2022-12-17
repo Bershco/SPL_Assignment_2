@@ -44,7 +44,6 @@ public class Table {
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
 
-        //TODO check if needed
     }
 
     /**
