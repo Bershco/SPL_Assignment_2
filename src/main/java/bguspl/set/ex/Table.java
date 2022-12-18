@@ -137,4 +137,18 @@ public class Table {
 
         // TODO check if enough
     }
+
+    //TODO might not be needed
+    public void removeTokens(int player, int[] slots) {
+        for (int i : slots) {
+            removeToken(player,i);
+        }
+    }
+
+    public void removeCardsAndTokensInSlots(int[] currCardSlots) {
+        for (int i : currCardSlots) {
+            removeCard(i);
+        }
+
+    }
 }

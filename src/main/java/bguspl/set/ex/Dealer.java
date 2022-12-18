@@ -2,11 +2,7 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
-import java.time.chrono.ThaiBuddhistEra;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -43,18 +39,19 @@ public class Dealer implements Runnable {
      */
     private long reshuffleTime = Long.MAX_VALUE;
 
-    private final ConcurrentLinkedQueue<Vector<Integer>> fairnessQueueCards;
+    private final ConcurrentLinkedQueue<int[]> fairnessQueueCardsSlots;
     private final ConcurrentLinkedQueue<Player> fairnessQueuePlayers;
+    private final Object bothQueues = new Object();
     private boolean foundSet;
-    private Vector<Integer> theSet = null;
+    private int[] currCardSlots;
     private Thread dealerThread;
-    private boolean actionmade = false;
+    //private boolean actionMade = false;
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
         this.players = players;
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
-        fairnessQueueCards = new ConcurrentLinkedQueue<>();
+        fairnessQueueCardsSlots = new ConcurrentLinkedQueue<>();
         fairnessQueuePlayers = new ConcurrentLinkedQueue<>();
     }
 
@@ -76,7 +73,7 @@ public class Dealer implements Runnable {
             placeCardsOnTable();
             updateTimerDisplay(true);
             timerLoop();
-            removeAllCardsFromTable(); //TODO: remove all tokens on table and clear all queques because we update here thr table
+            removeAllCardsFromTable(); //TODO: remove all tokens on table and clear all queues because we update here thr table
         }
         announceWinners();
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
@@ -123,45 +120,73 @@ public class Dealer implements Runnable {
     private void removeCardsFromTable() {
         //TODO: must fix the problem if two sets have some or all tokens that are going to be removed (identical sets or partially identical when one is the set that gonna be removed
         while(!foundSet & System.currentTimeMillis() < reshuffleTime){
-            synchronized (fairnessQueueCards) {
+            //synchronized (fairnessQueueCards) { this is definitely not good
                 checkNextSet();
-            }
+            //}
             updateTimerDisplay(false);
         }
         //TODO: allow other user to choose cards that are not in a current set that is being removed
-       //TODO: somthing wrong doesnt remove other players tokens
-       if(foundSet){
-           for(int id: theSet){
-               table.removeCard(table.cardToSlot[id]);
-           }
-           for (Player p : players){
-               boolean[] tokens = p.getTokenOnSlot();
-               Vector<Integer> toRemove = new Vector<>();
-               for(int i =0; i < tokens.length; i++){
-                   if(tokens[i] == true){
-                       if(theSet.contains(table.slotToCard[i])){
-                           toRemove.add(theSet.get(table.slotToCard[i]));
+        //TODO: something wrong doesnt remove other players tokens
+        if(foundSet){
+            table.removeCardsAndTokensInSlots(currCardSlots);
+            for (Player p : players) {
+                table.removeTokens(p.id, currCardSlots);
+
+                /*
+                Not really sure what this is all about, it was quite different before, and I changed some implementation so that might be redundant.
+                boolean[] tokens = p.getTokenOnSlot();
+                Vector<Integer> toRemove = new Vector<>();
+                for(int i = 0; i < tokens.length; i++){
+                    if(tokens[i]){
+                        if(currCardSlots.contains(table.slotToCard[i])){
+                            toRemove.add(currCardSlots[table.slotToCard[i]]);
                        }
                    }
                }
-               p.removeMyTokens(toRemove);
-           }
-           for(Vector<Integer> vector : fairnessQueueCards){
-               boolean firstRemove = false;
-               for(Integer card : theSet){
-                   if(vector.contains(card)&!firstRemove){
-                       fairnessQueueCards.remove(vector);
+                */
 
-                       fairnessQueuePlayers.remove();
-                       firstRemove = true;
-                   }
-               }
-           }
-           theSet = null;
-           foundSet = false;
-           placeCardsOnTable();
-           updateTimerDisplay(true);
+                p.removeMyTokens(currCardSlots);
+            }
+            Iterator<int[]> fairnessQueuesIterator = fairnessQueueCardsSlots.iterator();
+            boolean[] keepOrNot = new boolean[fairnessQueueCardsSlots.size()];
+            for (boolean b : keepOrNot)
+                b = false;
+            int currPlaceInQueue = 0;
+            while (fairnessQueuesIterator.hasNext()) {
+                int[] currCardSlotSet = fairnessQueuesIterator.next();
+                for (int currCardSlot : currCardSlots) {
+                    for (int k : currCardSlotSet) {
+                        if (currCardSlot == k) {
+                            keepOrNot[currPlaceInQueue] = true;
+                            break;
+                        }
+                    }
+                }
+                currPlaceInQueue++;
+            }
+            filterQueues(keepOrNot);
+            foundSet = false;
+            placeCardsOnTable();
+            updateTimerDisplay(true);
        }
+    }
+
+    //TODO I really hope this works and doesnt fuck us up later, but this might be a cause for a lot of concurrency problems
+    private void filterQueues(boolean[] keepOrNot) {
+        synchronized (bothQueues) {
+            ConcurrentLinkedQueue<int[]> queueReversed1 = new ConcurrentLinkedQueue<>();
+            ConcurrentLinkedQueue<Player> queueReversed2 = new ConcurrentLinkedQueue<>();
+            int size = fairnessQueueCardsSlots.size();
+            for (int i = 0; i < size; i++) {
+                if (keepOrNot[i]) {
+                    queueReversed1.add(fairnessQueueCardsSlots.remove());
+                    queueReversed2.add(fairnessQueuePlayers.remove());
+                } else {
+                    fairnessQueueCardsSlots.remove();
+                    fairnessQueuePlayers.remove();
+                }
+            }
+        }
     }
 
     /**
@@ -212,37 +237,40 @@ public class Dealer implements Runnable {
         }
     }
 
-    public void iGotASet(Player p, Vector<Integer> cards) {
-        synchronized (fairnessQueueCards){
-            fairnessQueueCards.add(cards);
-            fairnessQueueCards.notifyAll();
-        }
-        synchronized (fairnessQueuePlayers){
+    public void iGotASet(Player p, int[] cardSlots) {
+        synchronized (bothQueues) {
+            fairnessQueueCardsSlots.add(cardSlots);
             fairnessQueuePlayers.add(p);
-            fairnessQueuePlayers.notifyAll();
+            bothQueues.notifyAll();
         }
     }
     private void checkNextSet() { //changed some things here in order to be able to remove the cards
         try {
-            Vector<Integer> cards = fairnessQueueCards.remove();
-            synchronized (fairnessQueueCards){
-                fairnessQueueCards.notifyAll();
+            int[] cardSlots;
+            Player p;
+            synchronized (bothQueues){
+                cardSlots = fairnessQueueCardsSlots.remove();
+                p = fairnessQueuePlayers.remove();
+                bothQueues.notifyAll();
             }
-            Player p = fairnessQueuePlayers.remove();
-            int[] cardsAsArray = new int[cards.size()];
-            for (int i = 0; i < cards.size(); i++) {
-                cardsAsArray[i] = cards.get(i);
+
+            int[] cardsAsArray = new int[cardSlots.length];
+            for (int i = 0; i < cardSlots.length; i++) {
+                cardsAsArray[i] = table.slotToCard[cardSlots[i]];
             }
+
             if (env.util.testSet(cardsAsArray))
             {
-
-                p.point(); theSet = cards; foundSet = true; p.removeMyTokens(cards);
-
+                p.point();
+                foundSet = true;
+                p.removeMyTokens(cardsAsArray);
             }
+
             else{
-                p.penalty(); foundSet = false;  theSet = null; }
-            synchronized (cards){
-                cards.notifyAll();
+                p.penalty(); foundSet = false; }
+            //TODO this might not be needed
+            synchronized (cardSlots){
+                cardSlots.notifyAll();
             }
 
 
@@ -252,9 +280,7 @@ public class Dealer implements Runnable {
     private boolean checkIfSetExists(){
 
         List<Integer> currentTable = new LinkedList<>();
-        for(int i = 0; i<table.slotToCard.length; i++){
-            currentTable.add(table.slotToCard[i]);
-        }
+        Collections.addAll(currentTable, table.slotToCard);
         for(int i = 0; i<table.slotToCard.length; i++){
             if(table.slotToCard[i] == null){
                 return true;

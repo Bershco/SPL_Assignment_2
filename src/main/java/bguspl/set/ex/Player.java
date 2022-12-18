@@ -61,7 +61,7 @@ public class Player implements Runnable {
 
     private final ConcurrentLinkedQueue<Integer> incomingActions;
 
-    private final boolean[] tokenOnSlot;
+    private boolean[] tokenOnSlot;
     private int tokensPlaced;
 
     /**
@@ -79,12 +79,12 @@ public class Player implements Runnable {
         this.id = id;
         this.human = human;
         this.dealer = dealer;
-        incomingActions = new ConcurrentLinkedQueue<Integer>();
+        incomingActions = new ConcurrentLinkedQueue<>();
         tokenOnSlot = new boolean[env.config.rows * env.config.columns];
         tokensPlaced = 0;
     }
     public boolean[] getTokenOnSlot(){
-        return  tokenOnSlot;
+        return tokenOnSlot;
     }
     /**
      * The main player thread of each player starts here (main loop for the player thread).
@@ -105,6 +105,7 @@ public class Player implements Runnable {
                 }
 
                 if (tokenOnSlot[nextAction]) {
+                    //TODO maybe sync is needed here
                     table.removeToken(id,nextAction);
                     tokenOnSlot[nextAction] = false;
                     if (tokensPlaced > 0)
@@ -113,21 +114,25 @@ public class Player implements Runnable {
                     table.placeToken(id,nextAction);
                     tokenOnSlot[nextAction] = true;
                     if (++tokensPlaced == table.legalSetSize) {
-                        Vector<Integer> cards = new Vector<Integer>();
+                        int[] tokensAt = new int[table.legalSetSize];
                         //TODO: something is wrong the second time we send the vector
+                        int tokensAtInd = 0;
                         for(int i = 0; i<tokenOnSlot.length; i++){
                             if(tokenOnSlot[i]){
-                                cards.add(table.slotToCard[i]);
+                                tokensAt[tokensAtInd] = i;
+                                tokensAtInd++;
                             }
                         }
-                        dealer.iGotASet(this, cards);
+                        dealer.iGotASet(this, tokensAt);
 
-                        // by the way anywhere where we used wait I had to add the synchronized
+                        //TODO this next section might not be needed
+                        /*
                         synchronized (cards){
                             try {
                                 cards.wait();
                             } catch (InterruptedException ignored) {}
                         }
+                         */
 
                     }
                 }
@@ -151,7 +156,7 @@ public class Player implements Runnable {
      * key presses. If the queue of key presses is full, the thread waits until it is not full.
      */
     private void createArtificialIntelligence() {
-        // note: this is a very very smart AI (!)
+        // note: this is a very, very smart AI (!)
         aiThread = new Thread(() -> {
             env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " starting.");
             while (!terminate) {
@@ -230,13 +235,15 @@ public class Player implements Runnable {
         }
 
     }
-    public void removeMyTokens(Vector<Integer> cards){
-        for(Integer cid: cards){
-            table.removeToken(id,table.cardToSlot[cid]);
-            tokensPlaced--;
-            tokenOnSlot[table.cardToSlot[cid]] = false;
+    public void removeMyTokens(int[] cardSlots){
+        for(int slotId: cardSlots){
+            if (tokenOnSlot[slotId])
+            {
+                table.removeToken(id,slotId);
+                tokensPlaced = (tokensPlaced>=0) ? tokensPlaced-1 : tokensPlaced ; //Only reduce tokensPlaced if it's above or at 0
+                tokenOnSlot[slotId] = false;
+            }
         }
-
     }
 
     public int score() {
