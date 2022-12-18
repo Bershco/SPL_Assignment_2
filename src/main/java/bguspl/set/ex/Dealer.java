@@ -48,7 +48,7 @@ public class Dealer implements Runnable {
     private boolean foundSet;
     private Vector<Integer> theSet = null;
     private Thread dealerThread;
-
+    private boolean actionmade = false;
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
@@ -62,7 +62,7 @@ public class Dealer implements Runnable {
      * The dealer thread starts here (main loop for the dealer thread).
      */
     @Override
-    public void run() { //TODO: timer doesnt work for me
+    public void run() {
         dealerThread = Thread.currentThread();
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " starting.");
 
@@ -71,18 +71,12 @@ public class Dealer implements Runnable {
             playerThreads[i] = new Thread(players[i]);
             playerThreads[i].start();
         }
-        updateTimerDisplay(true);
-        while (!shouldFinish()) {
 
+        while (!shouldFinish()) {
             placeCardsOnTable();
-            while(!checkIfsetExists()){
-                removeAllCardsFromTable();
-                placeCardsOnTable();
-                updateTimerDisplay(true);
-            }
+            updateTimerDisplay(true);
             timerLoop();
-            updateTimerDisplay(false);
-            removeAllCardsFromTable();
+            removeAllCardsFromTable(); //TODO: remove all tokens on table and clear all queques because we update here thr table
         }
         announceWinners();
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
@@ -94,13 +88,10 @@ public class Dealer implements Runnable {
      * The inner loop of the dealer thread that runs as long as the countdown did not time out.
      */
     private void timerLoop() {
+        //TODO: current problem with timer is when someone gets penalty the timer freezes - fix
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             sleepUntilWokenOrTimeout();
-            //TODO: check where the dealer must wait
-          /*  while(System.currentTimeMillis() < reshuffleTime){
-                updateTimerDisplay(false);
-            }*/
-
+            updateTimerDisplay(false);
             removeCardsFromTable();
             placeCardsOnTable();
         }
@@ -123,7 +114,7 @@ public class Dealer implements Runnable {
      * @return true iff the game should be finished.
      */
     private boolean shouldFinish() {
-        return terminate || env.util.findSets(deck, 1).size() == 0;
+        return terminate || env.util.findSets(deck, 1).size() == 0 || !checkIfSetExists();
     }
 
     /**
@@ -131,11 +122,13 @@ public class Dealer implements Runnable {
      */
     private void removeCardsFromTable() {
         //TODO: must fix the problem if two sets have some or all tokens that are going to be removed (identical sets or partially identical when one is the set that gonna be removed
-        while(!foundSet){
+        while(!foundSet & System.currentTimeMillis() < reshuffleTime){
             synchronized (fairnessQueueCards) {
                 checkNextSet();
             }
+            updateTimerDisplay(false);
         }
+        //TODO: allow other user to choose cards that are not in a current set that is being removed
        //TODO: somthing wrong doesnt remove other players tokens
        if(foundSet){
            for(int id: theSet){
@@ -161,15 +154,14 @@ public class Dealer implements Runnable {
 
                        fairnessQueuePlayers.remove();
                        firstRemove = true;
-
                    }
                }
            }
            theSet = null;
            foundSet = false;
-
+           placeCardsOnTable();
+           updateTimerDisplay(true);
        }
-       placeCardsOnTable();
     }
 
     /**
@@ -196,7 +188,6 @@ public class Dealer implements Runnable {
                 this.wait(env.config.tableDelayMillis);
             } catch (InterruptedException ignored) {}
         }
-
     }
 
     /**
@@ -249,7 +240,7 @@ public class Dealer implements Runnable {
 
             }
             else{
-                p.penalty(); foundSet = false; p.removeMyTokens(cards); theSet = null; }
+                p.penalty(); foundSet = false;  theSet = null; }
             synchronized (cards){
                 cards.notifyAll();
             }
@@ -258,10 +249,16 @@ public class Dealer implements Runnable {
         } catch (NoSuchElementException ignored) {}
 
     }
-    private boolean checkIfsetExists(){
+    private boolean checkIfSetExists(){
+
         List<Integer> currentTable = new LinkedList<>();
         for(int i = 0; i<table.slotToCard.length; i++){
             currentTable.add(table.slotToCard[i]);
+        }
+        for(int i = 0; i<table.slotToCard.length; i++){
+            if(table.slotToCard[i] == null){
+                return true;
+            }
         }
         List<int[]> sets = env.util.findSets(currentTable,1);
         return !sets.isEmpty();

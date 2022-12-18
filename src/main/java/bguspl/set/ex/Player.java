@@ -225,7 +225,6 @@ public class Player implements Runnable {
         env.ui.setFreeze(id,env.config.penaltyFreezeMillis);
         synchronized (playerThread){
             try {
-
                 playerThread.wait(env.config.penaltyFreezeMillis); //TODO check if this needs to be playerThread or currentThread()
             } catch (InterruptedException ignored1) {}
         }
