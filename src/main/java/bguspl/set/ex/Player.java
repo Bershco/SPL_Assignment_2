@@ -67,6 +67,7 @@ public class Player implements Runnable {
     private int tokensPlaced;
     private final int SECOND = 1000;
     private final Object o = new Object();
+    private boolean isAsleep = false;
 
     /**
      * The class constructor.
@@ -136,8 +137,10 @@ public class Player implements Runnable {
             } catch (NoSuchElementException ignored) {
                 synchronized (incomingActions){
                     try {
+                        isAsleep = true;
                         incomingActions.wait();
                     } catch (InterruptedException ignored1) {}
+                    isAsleep = false;
                 }
 
             }
@@ -160,8 +163,10 @@ public class Player implements Runnable {
                 //TODO check if proper
                 keyPressSimulator();
                 try {
+                    isAsleep = true;
                     incomingActions.wait();
                 } catch (InterruptedException ignored) {}
+                isAsleep = false;
             }
             env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
         }, "computer-" + id);
@@ -188,7 +193,7 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
         //TODO check what should happen if more than 3 actions are attempted to be inserted before the player thread attempts to remove them from the queue
-        if (incomingActions.size() < 3) {
+        if (incomingActions.size() < 3 && !isAsleep) {
             synchronized (incomingActions){
                 incomingActions.add(slot);
                 incomingActions.notifyAll();
@@ -210,8 +215,10 @@ public class Player implements Runnable {
         env.ui.setFreeze(id,env.config.pointFreezeMillis);
         synchronized (o){
             try {
+                isAsleep = true;
                 o.wait(env.config.pointFreezeMillis); //TODO check if this needs to be playerThread or currentThread()
             } catch (InterruptedException ignored1) {}
+            isAsleep = false;
         }
         env.ui.setFreeze(id,0); //TODO this is magic number, please change
 
@@ -242,14 +249,17 @@ public class Player implements Runnable {
      */
     public void penalty() {
         // TODO check if proper
-        for (long counter = env.config.penaltyFreezeMillis; counter >= 0; counter -= 1000)
+        isAsleep = true;
+        for (long counter = env.config.penaltyFreezeMillis; counter >= 0; counter -= 1000) {
             try {
-                env.ui.setFreeze(id,counter);
+                env.ui.setFreeze(id, counter);
                 if (counter > 0)
                     synchronized (o) {
                         o.wait(SECOND); //TODO check if this needs to be playerThread or currentThread()
                     }
             } catch (InterruptedException ignored1) {}
+        }
+        isAsleep = false;
     }
 
     public void removeMyTokens(int[] cardSlots){
