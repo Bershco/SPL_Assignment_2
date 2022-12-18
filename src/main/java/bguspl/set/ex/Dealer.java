@@ -45,6 +45,8 @@ public class Dealer implements Runnable {
     private boolean foundSet;
     private int[] currCardSlots;
     private Thread dealerThread;
+    private final long practicallyZeroMS = 9;
+    private final long actualZero = 0;
     //private boolean actionMade = false;
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -174,17 +176,22 @@ public class Dealer implements Runnable {
     //TODO I really hope this works and doesnt fuck us up later, but this might be a cause for a lot of concurrency problems
     private void filterQueues(boolean[] keepOrNot) {
         synchronized (bothQueues) {
-            ConcurrentLinkedQueue<int[]> queueReversed1 = new ConcurrentLinkedQueue<>();
-            ConcurrentLinkedQueue<Player> queueReversed2 = new ConcurrentLinkedQueue<>();
+            ConcurrentLinkedQueue<int[]> queue1 = new ConcurrentLinkedQueue<>();
+            ConcurrentLinkedQueue<Player> queue2 = new ConcurrentLinkedQueue<>();
             int size = fairnessQueueCardsSlots.size();
             for (int i = 0; i < size; i++) {
                 if (keepOrNot[i]) {
-                    queueReversed1.add(fairnessQueueCardsSlots.remove());
-                    queueReversed2.add(fairnessQueuePlayers.remove());
+                    queue1.add(fairnessQueueCardsSlots.remove());
+                    queue2.add(fairnessQueuePlayers.remove());
                 } else {
                     fairnessQueueCardsSlots.remove();
                     fairnessQueuePlayers.remove();
                 }
+            }
+            size = queue1.size();
+            for (int i = 0; i < size; i++) {
+                fairnessQueueCardsSlots.add(queue1.remove());
+                fairnessQueuePlayers.add(queue2.remove());
             }
         }
     }
@@ -223,7 +230,7 @@ public class Dealer implements Runnable {
             env.ui.setCountdown(env.config.turnTimeoutMillis, false);
             reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
         }
-        else env.ui.setCountdown(reshuffleTime - System.currentTimeMillis(), reshuffleTime - System.currentTimeMillis() < env.config.turnTimeoutWarningMillis);
+        else env.ui.setCountdown((reshuffleTime - System.currentTimeMillis() > practicallyZeroMS) ? reshuffleTime - System.currentTimeMillis() : actualZero, reshuffleTime - System.currentTimeMillis() < env.config.turnTimeoutWarningMillis);
     }
 
     /**
@@ -253,6 +260,7 @@ public class Dealer implements Runnable {
                 p = fairnessQueuePlayers.remove();
                 bothQueues.notifyAll();
             }
+            currCardSlots = cardSlots;
 
             int[] cardsAsArray = new int[cardSlots.length];
             for (int i = 0; i < cardSlots.length; i++) {
@@ -261,13 +269,14 @@ public class Dealer implements Runnable {
 
             if (env.util.testSet(cardsAsArray))
             {
-                p.point();
+                p.sendMessage(Player.Message.POINT);
                 foundSet = true;
-                p.removeMyTokens(cardsAsArray);
+                p.removeMyTokens(cardSlots);
             }
 
             else{
-                p.penalty(); foundSet = false; }
+                p.sendMessage(Player.Message.PENALTY);
+                foundSet = false; }
             //TODO this might not be needed
             synchronized (cardSlots){
                 cardSlots.notifyAll();
