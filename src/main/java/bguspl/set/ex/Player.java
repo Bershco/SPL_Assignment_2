@@ -2,7 +2,6 @@ package bguspl.set.ex;
 
 import java.util.NoSuchElementException;
 import java.util.Random;
-import java.util.Vector;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
@@ -57,12 +56,17 @@ public class Player implements Runnable {
      * The current score of the player.
      */
     private int score;
-
-
+    public enum Message{
+        PENALTY,
+        POINT
+    }
     private final ConcurrentLinkedQueue<Integer> incomingActions;
+    private final ConcurrentLinkedQueue<Message> messages;
 
     private boolean[] tokenOnSlot;
     private int tokensPlaced;
+    private final int SECOND = 1000;
+    private final Object o = new Object();
 
     /**
      * The class constructor.
@@ -80,6 +84,7 @@ public class Player implements Runnable {
         this.human = human;
         this.dealer = dealer;
         incomingActions = new ConcurrentLinkedQueue<>();
+        messages = new ConcurrentLinkedQueue<>();
         tokenOnSlot = new boolean[env.config.rows * env.config.columns];
         tokensPlaced = 0;
     }
@@ -96,8 +101,9 @@ public class Player implements Runnable {
         if (!human) createArtificialIntelligence();
         while (!terminate) {
             // TODO check if proper
-
             try {
+                if (!messages.isEmpty())
+                    checkMessage();
                 int nextAction;
                 synchronized (incomingActions){
                     nextAction = incomingActions.remove();
@@ -124,18 +130,9 @@ public class Player implements Runnable {
                             }
                         }
                         dealer.iGotASet(this, tokensAt);
-
-                        //TODO this next section might not be needed
-                        /*
-                        synchronized (cards){
-                            try {
-                                cards.wait();
-                            } catch (InterruptedException ignored) {}
-                        }
-                         */
-
                     }
                 }
+
             } catch (NoSuchElementException ignored) {
                 synchronized (incomingActions){
                     try {
@@ -211,30 +208,50 @@ public class Player implements Runnable {
 
         env.ui.setScore(id, ++score);
         env.ui.setFreeze(id,env.config.pointFreezeMillis);
-        synchronized (playerThread){
+        synchronized (o){
             try {
-                System.out.println(Thread.currentThread().getName() + " is waiting for " + playerThread.getName());
-                playerThread.wait(env.config.pointFreezeMillis); //TODO check if this needs to be playerThread or currentThread()
+                o.wait(env.config.pointFreezeMillis); //TODO check if this needs to be playerThread or currentThread()
             } catch (InterruptedException ignored1) {}
         }
+        env.ui.setFreeze(id,0); //TODO this is magic number, please change
 
 
     }
 
+    public void sendMessage(Message m) {
+        messages.add(m);
+        synchronized (incomingActions) {
+            incomingActions.notifyAll();
+        }
+    }
+
+    private void checkMessage() {
+        Message m = messages.remove();
+        if (m == Message.PENALTY) {
+            penalty();
+        }
+        else if (m == Message.POINT) {
+            point();
+        }
+        else {
+            throw new IllegalArgumentException("Shouldn't have gotten here");
+        }
+    }
     /**
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
         // TODO check if proper
-
-        env.ui.setFreeze(id,env.config.penaltyFreezeMillis);
-        synchronized (playerThread){
+        for (long counter = env.config.penaltyFreezeMillis; counter >= 0; counter -= 1000)
             try {
-                playerThread.wait(env.config.penaltyFreezeMillis); //TODO check if this needs to be playerThread or currentThread()
+                env.ui.setFreeze(id,counter);
+                if (counter > 0)
+                    synchronized (o) {
+                        o.wait(SECOND); //TODO check if this needs to be playerThread or currentThread()
+                    }
             } catch (InterruptedException ignored1) {}
-        }
-
     }
+
     public void removeMyTokens(int[] cardSlots){
         for(int slotId: cardSlots){
             if (tokenOnSlot[slotId])
