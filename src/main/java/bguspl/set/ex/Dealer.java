@@ -47,7 +47,7 @@ public class Dealer implements Runnable {
     private Thread dealerThread;
     private final long practicallyZeroMS = 9;
     private final long actualZero = 0;
-    //private boolean actionMade = false;
+
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
@@ -133,20 +133,6 @@ public class Dealer implements Runnable {
             table.removeCardsAndTokensInSlots(currCardSlots);
             for (Player p : players) {
                 table.removeTokens(p.id, currCardSlots);
-
-                /*
-                Not really sure what this is all about, it was quite different before, and I changed some implementation so that might be redundant.
-                boolean[] tokens = p.getTokenOnSlot();
-                Vector<Integer> toRemove = new Vector<>();
-                for(int i = 0; i < tokens.length; i++){
-                    if(tokens[i]){
-                        if(currCardSlots.contains(table.slotToCard[i])){
-                            toRemove.add(currCardSlots[table.slotToCard[i]]);
-                       }
-                   }
-               }
-                */
-
                 p.removeMyTokens(currCardSlots);
             }
             Iterator<int[]> fairnessQueuesIterator = fairnessQueueCardsSlots.iterator();
@@ -159,7 +145,7 @@ public class Dealer implements Runnable {
                 for (int currCardSlot : currCardSlots) {
                     for (int k : currCardSlotSet) {
                         if (currCardSlot == k) {
-                            keepOrNot[currPlaceInQueue] = true;
+                            keepOrNot[currPlaceInQueue] = false;
                             break;
                         }
                     }
@@ -168,6 +154,7 @@ public class Dealer implements Runnable {
             }
             filterQueues(keepOrNot);
             foundSet = false;
+            //currCardSlots = null;
             placeCardsOnTable();
             updateTimerDisplay(true);
        }
@@ -237,10 +224,16 @@ public class Dealer implements Runnable {
      * Returns all the cards from the table to the deck.
      */
     private void removeAllCardsFromTable() {
-        for(int i = 0; i < 12; i++) {
-            //not sure about the correct index of the slot
+        for(int i = 0; i < env.config.rows * env.config.columns; i++) {
             table.removeCard(i);
-            deck.add(i);
+            deck.add(table.slotToCard[i]);
+            for(Player p : players){
+                int[] slotToRemove = new int[1]; //TODO: REMOVE MAGIC NUMBER
+                if(p.getTokenOnSlot()[i]){
+                    slotToRemove[0]=i;
+                }
+                p.removeMyTokens(slotToRemove);
+            }
         }
     }
 

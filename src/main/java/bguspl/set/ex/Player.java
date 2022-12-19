@@ -121,7 +121,7 @@ public class Player implements Runnable {
                     tokenOnSlot[nextAction] = true;
                     if (++tokensPlaced == table.legalSetSize) {
                         int[] tokensAt = new int[table.legalSetSize];
-                        //TODO: something is wrong the second time we send the vector
+
                         int tokensAtInd = 0;
                         for(int i = 0; i<tokenOnSlot.length; i++){
                             if(tokenOnSlot[i]){
