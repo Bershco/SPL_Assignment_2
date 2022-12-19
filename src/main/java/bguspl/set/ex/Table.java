@@ -149,7 +149,7 @@ public class Table {
     //TODO might not be needed
     public void removeTokens(int player, int[] slots) {
         for (int i : slots) {
-
+            //hey
                 removeToken(player,i);
 
 

@@ -263,6 +263,7 @@ public class Player implements Runnable {
                         o.wait(SECOND); //TODO check if this needs to be playerThread or currentThread()
                     }
             } catch (InterruptedException ignored1) {}
+        //hey
     }
 
     public void removeMyTokens(int[] cardSlots){

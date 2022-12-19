@@ -239,6 +239,7 @@ public class Dealer implements Runnable {
                     slotToRemove[0]=i;
                 }
                 p.removeMyTokens(slotToRemove);
+                //hey
             }
             table.removeCard(i);
         }
