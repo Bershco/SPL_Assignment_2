@@ -111,25 +111,31 @@ public class Player implements Runnable {
                 }
 
                 if (tokenOnSlot[nextAction]) {
-                    //TODO maybe sync is needed here
-                    table.removeToken(id,nextAction);
-                    tokenOnSlot[nextAction] = false;
-                    if (tokensPlaced > 0)
-                        tokensPlaced--;
+                    synchronized (table.inProgress) {
+                        table.removeToken(id, nextAction);
+                        tokenOnSlot[nextAction] = false;
+                        if (tokensPlaced > 0)
+                            tokensPlaced--;
+                        table.inProgress.notifyAll();
+                    }
                 } else {
-                    table.placeToken(id,nextAction);
-                    tokenOnSlot[nextAction] = true;
-                    if (++tokensPlaced == table.legalSetSize) {
-                        int[] tokensAt = new int[table.legalSetSize];
-                        //TODO: something is wrong the second time we send the vector
-                        int tokensAtInd = 0;
-                        for(int i = 0; i<tokenOnSlot.length; i++){
-                            if(tokenOnSlot[i]){
-                                tokensAt[tokensAtInd] = i;
-                                tokensAtInd++;
+                    synchronized (table.inProgress) {
+                        if (tokensPlaced < table.legalSetSize) {
+                            table.placeToken(id, nextAction);
+                            tokenOnSlot[nextAction] = true;
+                            if (++tokensPlaced == table.legalSetSize) {
+                                int[] currSetCardSlots = new int[table.legalSetSize];
+                                int cscsInd = 0;
+                                for (int i = 0; i < tokenOnSlot.length; i++) {
+                                    if (tokenOnSlot[i]) {
+                                        currSetCardSlots[cscsInd] = i;
+                                        cscsInd++;
+                                    }
+                                }
+                                dealer.iGotASet(this, currSetCardSlots);
                             }
                         }
-                        dealer.iGotASet(this, tokensAt);
+                        table.inProgress.notifyAll();
                     }
                 }
 
@@ -138,6 +144,7 @@ public class Player implements Runnable {
                     try {
                         incomingActions.wait();
                     } catch (InterruptedException ignored1) {}
+                    incomingActions.notifyAll();
                 }
 
             }
@@ -159,9 +166,14 @@ public class Player implements Runnable {
             while (!terminate) {
                 //TODO check if proper
                 keyPressSimulator();
-                try {
-                    incomingActions.wait();
-                } catch (InterruptedException ignored) {}
+                /*
+                synchronized (incomingActions) {
+                    try {
+                        incomingActions.wait();
+                    } catch (InterruptedException ignored) {
+                    }
+                }sy
+                 */
             }
             env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
         }, "computer-" + id);
@@ -169,9 +181,7 @@ public class Player implements Runnable {
     }
 
     private void keyPressSimulator() {
-        int[] options = env.config.playerKeys(id);
-        Random random = new Random();
-        keyPressed(options[(random.nextInt()*options.length)]);
+        keyPressed(((int)Math.floor(Math.random()*env.config.rows*env.config.columns)));
     }
     /**
      * Called when the game should be terminated due to an external event.
@@ -190,8 +200,11 @@ public class Player implements Runnable {
         //TODO check what should happen if more than 3 actions are attempted to be inserted before the player thread attempts to remove them from the queue
         if (incomingActions.size() < 3) {
             synchronized (incomingActions){
-                incomingActions.add(slot);
-                incomingActions.notifyAll();
+                if(dealer.placedCards){
+                    incomingActions.add(slot);
+                    incomingActions.notifyAll();
+                }
+
             }
         }
     }
@@ -250,17 +263,21 @@ public class Player implements Runnable {
                         o.wait(SECOND); //TODO check if this needs to be playerThread or currentThread()
                     }
             } catch (InterruptedException ignored1) {}
+        //hey
     }
 
     public void removeMyTokens(int[] cardSlots){
-        for(int slotId: cardSlots){
-            if (tokenOnSlot[slotId])
-            {
-                table.removeToken(id,slotId);
-                tokensPlaced = (tokensPlaced>=0) ? tokensPlaced-1 : tokensPlaced ; //Only reduce tokensPlaced if it's above or at 0
-                tokenOnSlot[slotId] = false;
+        synchronized (incomingActions) {
+            for (int slotId : cardSlots) {
+                if (tokenOnSlot[slotId]) {
+                    table.removeToken(id, slotId);
+                    tokensPlaced = (tokensPlaced >= 0) ? tokensPlaced - 1 : tokensPlaced; //Only reduce tokensPlaced if it's above or at 0
+                    tokenOnSlot[slotId] = false;
+                }
             }
+            incomingActions.notifyAll();
         }
+
     }
 
     public int score() {

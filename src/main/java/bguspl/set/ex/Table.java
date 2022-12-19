@@ -30,6 +30,7 @@ public class Table {
     protected final Integer[] cardToSlot; // slot per card (if any)
 
     protected final int legalSetSize = 3;
+    public Object inProgress = new Object();
 
     /**
      * Constructor for testing.
@@ -90,14 +91,18 @@ public class Table {
      * @post - the card placed is on the table, in the assigned slot.
      */
     public void placeCard(int card, int slot) {
-        try {
-            Thread.sleep(env.config.tableDelayMillis);
-        } catch (InterruptedException ignored) {}
+        synchronized (inProgress) {
+            try {
+                Thread.sleep(env.config.tableDelayMillis);
+            } catch (InterruptedException ignored) {
+            }
 
-        cardToSlot[card] = slot;
-        slotToCard[slot] = card;
+            cardToSlot[card] = slot;
+            slotToCard[slot] = card;
 
-        env.ui.placeCard(card, slot);
+            env.ui.placeCard(card, slot);
+            inProgress.notifyAll();
+        }
     }
 
     /**
@@ -105,16 +110,19 @@ public class Table {
      * @param slot - the slot from which to remove the card.
      */
     public void removeCard(int slot) {
-        int id = slotToCard[slot];
-        cardToSlot[id] = null;
-        slotToCard[slot] = null;
-        synchronized (this){
-            try {
-                wait(env.config.tableDelayMillis);
-            } catch (InterruptedException ignored) {}
-        }
+        //synchronized (inProgress) {
+            int id = slotToCard[slot];
+            cardToSlot[id] = null;
+            slotToCard[slot] = null;
+            synchronized (this) {
+                try {
+                    wait(env.config.tableDelayMillis);
+                } catch (InterruptedException ignored) {
+                }
+            }
 
-        env.ui.removeCard(slot);
+            env.ui.removeCard(slot);
+        //}
     }
 
     /**
@@ -141,14 +149,18 @@ public class Table {
     //TODO might not be needed
     public void removeTokens(int player, int[] slots) {
         for (int i : slots) {
-            removeToken(player,i);
+            //hey
+                removeToken(player,i);
+
+
         }
     }
 
     public void removeCardsAndTokensInSlots(int[] currCardSlots) {
-        for (int i : currCardSlots) {
-            removeCard(i);
-        }
-
+        //synchronized (this) {
+            for (int i : currCardSlots) {
+                removeCard(i);
+            }
+       // }
     }
 }

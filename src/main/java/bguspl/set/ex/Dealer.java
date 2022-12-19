@@ -47,7 +47,8 @@ public class Dealer implements Runnable {
     private Thread dealerThread;
     private final long practicallyZeroMS = 9;
     private final long actualZero = 0;
-    //private boolean actionMade = false;
+    public boolean placedCards = false;
+
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
@@ -120,6 +121,7 @@ public class Dealer implements Runnable {
      * Checks cards should be removed from the table and removes them.
      */
     private void removeCardsFromTable() {
+
         //TODO: must fix the problem if two sets have some or all tokens that are going to be removed (identical sets or partially identical when one is the set that gonna be removed
         while(!foundSet & System.currentTimeMillis() < reshuffleTime){
             //synchronized (fairnessQueueCards) { this is definitely not good
@@ -130,23 +132,10 @@ public class Dealer implements Runnable {
         //TODO: allow other user to choose cards that are not in a current set that is being removed
         //TODO: something wrong doesnt remove other players tokens
         if(foundSet){
+            placedCards = false;
             table.removeCardsAndTokensInSlots(currCardSlots);
             for (Player p : players) {
                 table.removeTokens(p.id, currCardSlots);
-
-                /*
-                Not really sure what this is all about, it was quite different before, and I changed some implementation so that might be redundant.
-                boolean[] tokens = p.getTokenOnSlot();
-                Vector<Integer> toRemove = new Vector<>();
-                for(int i = 0; i < tokens.length; i++){
-                    if(tokens[i]){
-                        if(currCardSlots.contains(table.slotToCard[i])){
-                            toRemove.add(currCardSlots[table.slotToCard[i]]);
-                       }
-                   }
-               }
-                */
-
                 p.removeMyTokens(currCardSlots);
             }
             Iterator<int[]> fairnessQueuesIterator = fairnessQueueCardsSlots.iterator();
@@ -159,7 +148,7 @@ public class Dealer implements Runnable {
                 for (int currCardSlot : currCardSlots) {
                     for (int k : currCardSlotSet) {
                         if (currCardSlot == k) {
-                            keepOrNot[currPlaceInQueue] = true;
+                            keepOrNot[currPlaceInQueue] = false;
                             break;
                         }
                     }
@@ -168,6 +157,7 @@ public class Dealer implements Runnable {
             }
             filterQueues(keepOrNot);
             foundSet = false;
+            //currCardSlots = null;
             placeCardsOnTable();
             updateTimerDisplay(true);
        }
@@ -205,10 +195,12 @@ public class Dealer implements Runnable {
             if (table.slotToCard[i] == null) {
                 int max = deck.size() - 1;
                 int random_num = (int)Math.floor(Math.random()*(max-min+1)+min);
-                int card = deck.remove(random_num);
-                table.placeCard(card, i);
+                Integer card = deck.remove(random_num);
+                if (card != null)
+                    table.placeCard(card, i);
             }
         }
+        placedCards = true;
     }
     /**
      * Sleep for a fixed amount of time or until the thread is awakened for some purpose.
@@ -237,11 +229,23 @@ public class Dealer implements Runnable {
      * Returns all the cards from the table to the deck.
      */
     private void removeAllCardsFromTable() {
-        for(int i = 0; i < 12; i++) {
-            //not sure about the correct index of the slot
+        placedCards = false;
+        for(int i = 0; i < env.config.rows * env.config.columns; i++) {
+            int cardValue = table.slotToCard[i];
+            deck.add(cardValue);
+            for(Player p : players){
+                int[] slotToRemove = new int[1]; //TODO: REMOVE MAGIC NUMBER
+                if(p.getTokenOnSlot()[i]){
+                    slotToRemove[0]=i;
+                }
+                p.removeMyTokens(slotToRemove);
+                //hey
+            }
             table.removeCard(i);
-            deck.add(i);
         }
+        fairnessQueueCardsSlots.clear();
+        fairnessQueuePlayers.clear();
+
     }
 
     public void iGotASet(Player p, int[] cardSlots) {
