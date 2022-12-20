@@ -53,6 +53,23 @@ class PlayerTest {
     }
 
     @Test
+    void Penalty(){
+        // force table.countCards to return 3
+        when(table.countCards()).thenReturn(3); // this part is just for demonstration
+
+        // calculate the expected score for later
+        int expectedScore = 0;
+
+        // call the method we are testing
+        player.penalty();
+
+        // check that the score was increased correctly
+        assertEquals(expectedScore, player.score());
+
+        // check that ui.setScore was called with the player's id and the correct score
+        verify(ui).setScore(eq(player.id), eq(expectedScore));
+    }
+    @Test
     void point() {
 
         // force table.countCards to return 3
@@ -70,4 +87,16 @@ class PlayerTest {
         // check that ui.setScore was called with the player's id and the correct score
         verify(ui).setScore(eq(player.id), eq(expectedScore));
     }
+    @Test
+    void keyPressed(){
+        int chosenSlot = 4;
+        player.keyPressed(chosenSlot);
+        boolean tokenOnSlot = player.getTokenOnSlot()[chosenSlot];
+        int otherSlot = 6;
+        boolean OtherTokenOnSlot = player.getTokenOnSlot()[otherSlot];
+        boolean expectedValue = true;
+        assertEquals(expectedValue, tokenOnSlot);
+        assertEquals(!expectedValue, OtherTokenOnSlot);
+    }
+
 }

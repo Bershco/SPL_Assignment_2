@@ -101,6 +101,7 @@ public class Player implements Runnable {
     public boolean[] getTokenOnSlot(){
         return tokenOnSlot;
     }
+
     /**
      * The main player thread of each player starts here (main loop for the player thread).
      */
