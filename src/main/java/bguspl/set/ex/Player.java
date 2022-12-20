@@ -56,11 +56,21 @@ public class Player implements Runnable {
      * The current score of the player.
      */
     private int score;
+
+    public void removeCardSlotsFromIncomingActionsQueue(int[] currCardSlots) {
+        for (Integer i : incomingActions) {
+            for (int slot : currCardSlots) {
+                if (i == slot)
+                    incomingActions.remove(i);
+            }
+        }
+    }
+
     public enum Message{
         PENALTY,
         POINT
     }
-    private final ConcurrentLinkedQueue<Integer> incomingActions;
+    public final ConcurrentLinkedQueue<Integer> incomingActions;
     private final ConcurrentLinkedQueue<Message> messages;
 
     private boolean[] tokenOnSlot;
@@ -111,44 +121,33 @@ public class Player implements Runnable {
                 }
 
                 if (tokenOnSlot[nextAction]) {
-                    synchronized (table.inProgress) {
-                        table.removeToken(id, nextAction);
-                        tokenOnSlot[nextAction] = false;
-                        if (tokensPlaced > 0)
-                            tokensPlaced--;
-                        table.inProgress.notifyAll();
-                    }
+                    table.removeToken(id, nextAction);
+                    tokenOnSlot[nextAction] = false;
+                    if (tokensPlaced > 0)
+                        tokensPlaced--;
                 } else {
-                    synchronized (table.inProgress) {
-                        if (tokensPlaced < table.legalSetSize) {
-                            table.placeToken(id, nextAction);
-                            tokenOnSlot[nextAction] = true;
-                            if (++tokensPlaced == table.legalSetSize) {
-                                int[] currSetCardSlots = new int[table.legalSetSize];
-                                int cscsInd = 0;
-                                for (int i = 0; i < tokenOnSlot.length; i++) {
-                                    if (tokenOnSlot[i]) {
-                                        currSetCardSlots[cscsInd] = i;
-                                        cscsInd++;
-                                    }
+                    if (tokensPlaced < table.legalSetSize) {
+                        table.placeToken(id, nextAction);
+                        tokenOnSlot[nextAction] = true;
+                        if (++tokensPlaced == table.legalSetSize) {
+                            int[] currSetCardSlots = new int[table.legalSetSize];
+                            int cSCSInd = 0;
+                            for (int i = 0; i < tokenOnSlot.length; i++) {
+                                if (tokenOnSlot[i]) {
+                                    if (cSCSInd == 3)
+                                        break;
+                                    currSetCardSlots[cSCSInd] = i;
+                                    cSCSInd++;
                                 }
-                                dealer.iGotASet(this, currSetCardSlots);
                             }
+                            if (cSCSInd != 3) System.out.println("2");
+                            dealer.iGotASet(this, currSetCardSlots);
                         }
-                        table.inProgress.notifyAll();
                     }
                 }
 
-            } catch (NoSuchElementException ignored) {
-                synchronized (incomingActions){
-                    try {
-                        incomingActions.wait();
-                    } catch (InterruptedException ignored1) {}
-                    incomingActions.notifyAll();
-                }
-
+            } catch (NoSuchElementException ignored) {}
             }
-        }
         if (!human)
             while (aiThread.isAlive())
                 try { aiThread.join(); } catch (InterruptedException ignored) {}
@@ -166,14 +165,6 @@ public class Player implements Runnable {
             while (!terminate) {
                 //TODO check if proper
                 keyPressSimulator();
-                /*
-                synchronized (incomingActions) {
-                    try {
-                        incomingActions.wait();
-                    } catch (InterruptedException ignored) {
-                    }
-                }sy
-                 */
             }
             env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
         }, "computer-" + id);
@@ -198,15 +189,19 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
         //TODO check what should happen if more than 3 actions are attempted to be inserted before the player thread attempts to remove them from the queue
+        if (slotIsNull(slot)) return;
         if (incomingActions.size() < 3) {
             synchronized (incomingActions){
                 if(dealer.placedCards){
                     incomingActions.add(slot);
                     incomingActions.notifyAll();
                 }
-
             }
         }
+    }
+
+    private boolean slotIsNull(int slot) {
+        return table.slotToCard[slot] == null;
     }
 
     /**
@@ -221,9 +216,10 @@ public class Player implements Runnable {
 
         env.ui.setScore(id, ++score);
         env.ui.setFreeze(id,env.config.pointFreezeMillis);
-        synchronized (o){
+        synchronized (this){
             try {
-                o.wait(env.config.pointFreezeMillis); //TODO check if this needs to be playerThread or currentThread()
+                System.out.println(Thread.currentThread().getName() + " is waiting for player instance");
+                wait((env.config.pointFreezeMillis > 0) ? env.config.pointFreezeMillis : 1);
             } catch (InterruptedException ignored1) {}
         }
         env.ui.setFreeze(id,0); //TODO this is magic number, please change
@@ -255,15 +251,14 @@ public class Player implements Runnable {
      */
     public void penalty() {
         // TODO check if proper
-        for (long counter = env.config.penaltyFreezeMillis; counter >= 0; counter -= 1000)
+        for (long counter = env.config.penaltyFreezeMillis; counter >= 0; counter -= SECOND)
             try {
                 env.ui.setFreeze(id,counter);
                 if (counter > 0)
-                    synchronized (o) {
-                        o.wait(SECOND); //TODO check if this needs to be playerThread or currentThread()
+                    synchronized (this) {
+                        wait(SECOND);
                     }
             } catch (InterruptedException ignored1) {}
-        //hey
     }
 
     public void removeMyTokens(int[] cardSlots){
