@@ -109,7 +109,6 @@ public class Table {
         slotToCard[slot] = null;
         synchronized (this) {
             try {
-                System.out.println(Thread.currentThread().getName() + " is waiting for table instance");
                 wait(env.config.tableDelayMillis);
             } catch (InterruptedException ignored) {
             }
