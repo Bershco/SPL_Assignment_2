@@ -136,6 +136,7 @@ public class Dealer implements Runnable {
         }
         //TODO: allow other user to choose cards that are not in a current set that is being removed
         //TODO: something wrong doesnt remove other players tokens
+
         if(foundSet){
             placedCards = false;
             table.removeCardsAndTokensInSlots(currCardSlots);
@@ -338,5 +339,15 @@ public class Dealer implements Runnable {
             winners[i] = potentialWinners.get(i);
         }
         env.ui.announceWinner(winners);
+    }
+
+    /**
+     * functions to call for test
+     */
+    public void setCardsOnTable(){
+        this.placeCardsOnTable();
+    }
+    public void removeAllCards(){
+        this.removeAllCardsFromTable();
     }
 }

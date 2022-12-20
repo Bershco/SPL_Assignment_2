@@ -42,7 +42,7 @@ class PlayerTest {
     @BeforeEach
     void setUp() {
         // purposely do not find the configuration files (use defaults here).
-        Env env = new Env(logger, new Config(logger, ""), ui, util);
+        Env env = new Env(logger, new Config(logger, (String) null), ui, util);
         player = new Player(env, dealer, table, 0, false);
         assertInvariants();
     }
@@ -70,4 +70,35 @@ class PlayerTest {
         // check that ui.setScore was called with the player's id and the correct score
         verify(ui).setScore(eq(player.id), eq(expectedScore));
     }
+
+    @Test
+    void Penalty(){
+        // force table.countCards to return 3
+        when(table.countCards()).thenReturn(3); // this part is just for demonstration
+
+        // calculate the expected score for later
+        int expectedScore = 0;
+
+        // call the method we are testing
+        player.penalty();
+
+        // check that the score was increased correctly
+        assertEquals(expectedScore, player.score());
+
+        // check that ui.setScore was called with the player's id and the correct score
+        verify(ui).setScore(eq(player.id), eq(expectedScore));
+    }
+
+    @Test
+    void keyPressed(){
+        int chosenSlot = 4;
+        player.keyPressed(chosenSlot);
+        boolean tokenOnSlot = player.getTokenOnSlot()[chosenSlot];
+        int otherSlot = 6;
+        boolean OtherTokenOnSlot = player.getTokenOnSlot()[otherSlot];
+        boolean expectedValue = true;
+        assertEquals(expectedValue, tokenOnSlot);
+        assertEquals(!expectedValue, OtherTokenOnSlot);
+    }
+
 }
