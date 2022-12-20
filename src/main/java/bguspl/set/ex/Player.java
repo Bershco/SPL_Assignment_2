@@ -35,7 +35,7 @@ public class Player implements Runnable {
     /**
      * The thread representing the current player.
      */
-    private Thread playerThread;
+    public Thread playerThread;
 
     /**
      * The thread of the AI (computer) player (an additional thread used to generate key presses).
@@ -180,7 +180,6 @@ public class Player implements Runnable {
      */
     public void terminate() {
         terminate = true;
-        playerThread.interrupt();
     }
 
     /**
