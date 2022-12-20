@@ -351,4 +351,15 @@ public class Dealer implements Runnable {
         terminate();
         env.ui.announceWinner(winners);
     }
+
+    /*
+     * Functions to call for testing only
+     */
+    public void setCardsOnTable() {
+        placeCardsOnTable();
+    }
+    public void removeAllCards() {
+        this.removeAllCardsFromTable();
+    }
+
 }
