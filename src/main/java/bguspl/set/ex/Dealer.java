@@ -146,12 +146,13 @@ public class Dealer implements Runnable {
         //TODO: something wrong doesnt remove other players tokens
         if(foundSet){
             placedCards = false;
-            table.removeCardsAndTokensInSlots(currCardSlots);
+
             for (Player p : players) {
                 table.removeTokens(p.id, currCardSlots);
                 p.removeMyTokens(currCardSlots);
                 p.removeCardSlotsFromIncomingActionsQueue(currCardSlots);
             }
+            table.removeCardsAndTokensInSlots(currCardSlots);
             Iterator<int[]> fairnessQueuesIterator = fairnessQueueCardsSlots.iterator();
             boolean[] keepOrNot = new boolean[fairnessQueueCardsSlots.size()];
             for (boolean b : keepOrNot)
