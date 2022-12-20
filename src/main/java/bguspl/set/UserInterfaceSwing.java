@@ -270,6 +270,7 @@ public class UserInterfaceSwing extends JFrame implements UserInterface {
             if (players.length == 1) text = "THE WINNER IS: " + names.get(0) + "!!!";
             else text = "IT IS A DRAW: " + String.join(" AND ", names) + " WON!!!";
             winnerAnnouncement.setText(text);
+            timerPanel.setVisible(false);
         }
     }
 

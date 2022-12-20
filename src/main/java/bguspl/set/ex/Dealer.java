@@ -74,6 +74,8 @@ public class Dealer implements Runnable {
             placeCardsOnTable();
             updateTimerDisplay(true);
             timerLoop();
+            if (terminate) break;
+            System.out.println("timer loop finished");
             removeAllCardsFromTable(); //TODO: remove all tokens on table and clear all queues because we update here thr table
         }
         announceWinners();
@@ -86,7 +88,6 @@ public class Dealer implements Runnable {
      * The inner loop of the dealer thread that runs as long as the countdown did not time out.
      */
     private void timerLoop() {
-        //TODO: current problem with timer is when someone gets penalty the timer freezes - fix
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             sleepUntilWokenOrTimeout();
             updateTimerDisplay(false);
@@ -99,11 +100,18 @@ public class Dealer implements Runnable {
      * Called when the game should be terminated due to an external event.
      */
     public void terminate() {
+        if (terminate) return;
         terminate = true;
-        for(int i = players.length - 1; i >= 0 ; i--)
-        //So that the player threads will be eliminated in reverse order to the order they were created by
+        for(int i = players.length - 1; i >= 0 ; i--) {
+            //So that the player threads will be eliminated in reverse order to the order they were created by
             players[i].terminate();
-        dealerThread.interrupt();
+            synchronized (this) {notifyAll();}
+            synchronized (table) {table.notifyAll();}
+            synchronized (bothQueues) {bothQueues.notifyAll();}
+            try {
+                players[i].playerThread.join();
+            } catch (InterruptedException ignored) {}
+        }
     }
 
     /**
@@ -130,13 +138,12 @@ public class Dealer implements Runnable {
     private void removeCardsFromTable() {
 
         //TODO: must fix the problem if two sets have some or all tokens that are going to be removed (identical sets or partially identical when one is the set that gonna be removed
-        while(!foundSet & System.currentTimeMillis() < reshuffleTime){
+        while(!terminate && !foundSet && System.currentTimeMillis() < reshuffleTime){
             checkNextSet();
             updateTimerDisplay(false);
         }
         //TODO: allow other user to choose cards that are not in a current set that is being removed
         //TODO: something wrong doesnt remove other players tokens
-
         if(foundSet){
             placedCards = false;
             table.removeCardsAndTokensInSlots(currCardSlots);
@@ -169,7 +176,7 @@ public class Dealer implements Runnable {
             updateTimerDisplay(true);
             if (checkDeckAndTable())
                 terminate = true;
-       }
+        }
     }
 
     //TODO I really hope this works and doesnt fuck us up later, but this might be a cause for a lot of concurrency problems
@@ -202,6 +209,7 @@ public class Dealer implements Runnable {
      * Check if any cards can be removed from the deck and placed on the table.
      */
     private void placeCardsOnTable() {
+        if (terminate) return;
         int min = 0;
         for (int i = 0; i < table.slotToCard.length; i++) {
             if (table.slotToCard[i] == null) {
@@ -225,7 +233,8 @@ public class Dealer implements Runnable {
         synchronized (bothQueues){
             try {
                 System.out.println(Thread.currentThread().getName() + " is waiting for dealer instance");
-                bothQueues.wait(env.config.tableDelayMillis);
+                if (!terminate)
+                    bothQueues.wait(env.config.tableDelayMillis);
                 bothQueues.notifyAll();
             } catch (InterruptedException ignored) {}
         }
@@ -235,6 +244,7 @@ public class Dealer implements Runnable {
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
+        if (terminate) return;
         if(reset) {
             env.ui.setCountdown(env.config.turnTimeoutMillis, false);
             reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
@@ -254,7 +264,7 @@ public class Dealer implements Runnable {
             for(Player p : players){
                 if (p.getTokenOnSlot()[i])
                     p.removeMyTokens(new int[]{i}); //pretty sure this line is every line after this
-                    //also pretty sure it was somehow broken before.
+                //also pretty sure it was somehow broken before.
             }
             table.removeCard(i);
         }
@@ -338,16 +348,18 @@ public class Dealer implements Runnable {
         for(int i = 0; i < potentialWinners.size(); i++){
             winners[i] = potentialWinners.get(i);
         }
+        terminate();
         env.ui.announceWinner(winners);
     }
 
-    /**
-     * functions to call for test
+    /*
+     * Functions to call for testing only
      */
-    public void setCardsOnTable(){
-        this.placeCardsOnTable();
+    public void setCardsOnTable() {
+        placeCardsOnTable();
     }
-    public void removeAllCards(){
+    public void removeAllCards() {
         this.removeAllCardsFromTable();
     }
+
 }

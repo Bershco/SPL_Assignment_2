@@ -159,7 +159,9 @@ public class Config {
 
         Properties properties = new Properties();
 
-        try (InputStream is = Files.newInputStream(Paths.get(filename))) {
+        if (filename == null || filename.isEmpty())
+            logger.severe("running with default configuration.");
+        else try (InputStream is = Files.newInputStream(Paths.get(filename))) {
             properties.load(is);
         } catch (IOException e) {
             logger.severe("cannot read configuration file " + filename + " trying from resources.");

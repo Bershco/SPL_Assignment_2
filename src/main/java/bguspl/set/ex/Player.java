@@ -35,7 +35,7 @@ public class Player implements Runnable {
     /**
      * The thread representing the current player.
      */
-    private Thread playerThread;
+    public Thread playerThread;
 
     /**
      * The thread of the AI (computer) player (an additional thread used to generate key presses).
@@ -101,7 +101,6 @@ public class Player implements Runnable {
     public boolean[] getTokenOnSlot(){
         return tokenOnSlot;
     }
-
     /**
      * The main player thread of each player starts here (main loop for the player thread).
      */
@@ -148,7 +147,7 @@ public class Player implements Runnable {
                 }
 
             } catch (NoSuchElementException ignored) {}
-            }
+        }
         if (!human)
             while (aiThread.isAlive())
                 try { aiThread.join(); } catch (InterruptedException ignored) {}
@@ -180,7 +179,6 @@ public class Player implements Runnable {
      */
     public void terminate() {
         terminate = true;
-        playerThread.interrupt();
     }
 
     /**
