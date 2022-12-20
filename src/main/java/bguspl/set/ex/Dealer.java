@@ -144,15 +144,15 @@ public class Dealer implements Runnable {
         }
         //TODO: allow other user to choose cards that are not in a current set that is being removed
         //TODO: something wrong doesnt remove other players tokens
-
         if(foundSet){
             placedCards = false;
-            table.removeCardsAndTokensInSlots(currCardSlots);
+
             for (Player p : players) {
                 table.removeTokens(p.id, currCardSlots);
                 p.removeMyTokens(currCardSlots);
                 p.removeCardSlotsFromIncomingActionsQueue(currCardSlots);
             }
+            table.removeCardsAndTokensInSlots(currCardSlots);
             Iterator<int[]> fairnessQueuesIterator = fairnessQueueCardsSlots.iterator();
             boolean[] keepOrNot = new boolean[fairnessQueueCardsSlots.size()];
             for (boolean b : keepOrNot)
@@ -177,7 +177,7 @@ public class Dealer implements Runnable {
             updateTimerDisplay(true);
             if (checkDeckAndTable())
                 terminate = true;
-       }
+        }
     }
 
     //TODO I really hope this works and doesnt fuck us up later, but this might be a cause for a lot of concurrency problems
@@ -265,7 +265,7 @@ public class Dealer implements Runnable {
             for(Player p : players){
                 if (p.getTokenOnSlot()[i])
                     p.removeMyTokens(new int[]{i}); //pretty sure this line is every line after this
-                    //also pretty sure it was somehow broken before.
+                //also pretty sure it was somehow broken before.
             }
             table.removeCard(i);
         }

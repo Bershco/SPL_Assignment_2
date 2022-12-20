@@ -7,6 +7,7 @@ import bguspl.set.ex.Table;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.logging.*;
@@ -17,17 +18,16 @@ import java.util.logging.*;
 public class Main {
 
     private static Dealer dealer;
-    private static Thread thread;
+    private static Thread mainThread;
 
     private static boolean xButtonPressed = false;
     private static Logger logger;
 
-    public static void xButtonPressed() {
+    public static void xButtonPressed() throws InterruptedException {
         if (logger != null) logger.severe("exit button pressed");
         xButtonPressed = true;
         if (dealer != null) dealer.terminate();
-        thread.interrupt();
-        try { thread.join(); } catch (InterruptedException ignored) {}
+        mainThread.join();
     }
 
     /**
@@ -37,7 +37,7 @@ public class Main {
      */
     public static void main(String[] args) {
 
-        thread = Thread.currentThread();
+        mainThread = Thread.currentThread();
 
         // create the game environment objects
         logger = initLogger();
@@ -73,13 +73,13 @@ public class Main {
             // shutdown stuff
             dealerThread.joinWithLog();
             if (!xButtonPressed && config.endGamePauseMillies > 0) Thread.sleep(config.endGamePauseMillies);
-            env.ui.dispose();
         } catch (InterruptedException ignored) {
         } finally {
             logger.severe("thanks for playing... it was fun!");
             System.out.println("Thanks for playing... it was fun!");
             ThreadLogger.logStop(logger, Thread.currentThread().getName());
-            for (Handler h : logger.getHandlers()) h.close();
+            if (!xButtonPressed) env.ui.dispose();
+            for (Handler h : logger.getHandlers()) h.flush();
         }
     }
 
@@ -105,7 +105,8 @@ public class Main {
     }
 
     public static void setLoggerLevelAndFormat(Logger logger, Level level, String format) {
-        logger.getHandlers()[0].setFormatter(new SimpleFormatter() {
+        Handler[] handlers = logger.getHandlers();
+        if (handlers != null) Arrays.stream(handlers).forEach(h -> h.setFormatter(new SimpleFormatter() {
             // default format (with timestamp)  = "[%1$tF %1$tT] [%2$-7s] %3$s%n";
             @Override
             public synchronized String format(LogRecord lr) {
@@ -113,7 +114,7 @@ public class Main {
                         lr.getLevel().getLocalizedName(), lr.getMessage()
                 );
             }
-        });
+        }));
         logger.setLevel(level);
     }
 }

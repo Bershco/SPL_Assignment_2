@@ -101,7 +101,6 @@ public class Player implements Runnable {
     public boolean[] getTokenOnSlot(){
         return tokenOnSlot;
     }
-
     /**
      * The main player thread of each player starts here (main loop for the player thread).
      */
@@ -148,7 +147,7 @@ public class Player implements Runnable {
                 }
 
             } catch (NoSuchElementException ignored) {}
-            }
+        }
         if (!human)
             while (aiThread.isAlive())
                 try { aiThread.join(); } catch (InterruptedException ignored) {}

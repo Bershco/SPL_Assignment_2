@@ -12,12 +12,15 @@ import java.util.Properties;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.eq;
 
 class TableTest {
 
     Table table;
     private Integer[] slotToCard;
     private Integer[] cardToSlot;
+    public Player player1;
+    UserInterface ui;
 
     @BeforeEach
     void setUp() {
@@ -34,9 +37,12 @@ class TableTest {
         Config config = new Config(logger, properties);
         slotToCard = new Integer[config.tableSize];
         cardToSlot = new Integer[config.deckSize];
+        ui = new MockUserInterface();
 
         Env env = new Env(logger, config, new MockUserInterface(), new MockUtil());
         table = new Table(env, slotToCard, cardToSlot);
+        Player[] players = new Player[1];
+        Player player1 = new Player(env,new Dealer(env,table,players),table,0,true);
     }
 
     private int fillSomeSlots() {
@@ -98,6 +104,25 @@ class TableTest {
     void placeCard_AllSlotsAreFilled() throws InterruptedException {
         fillAllSlots();
         placeSomeCardsAndAssert();
+    }
+    @Test
+    void placeToken(){
+        table.placeToken(0,2);
+        //verify(ui).placeToken(eq(player1.id),)
+             //   erify(ui).setScore(eq(player.id), eq(expectedScore));
+    }
+    @Test
+    void removeCards(){
+        table.removeCard(2);
+
+        assertEquals(null,  slotToCard[2]);
+        assertEquals(null,  cardToSlot[8]);
+    }
+    @Test
+    void removeCardsInSlots(){
+        table.placeCard(2,3);
+        assertEquals(null,  slotToCard[3]);
+        assertEquals(null,  cardToSlot[2]);
     }
 
     static class MockUserInterface implements UserInterface {
