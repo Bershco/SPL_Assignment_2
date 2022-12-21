@@ -58,6 +58,11 @@ public class Player implements Runnable {
      */
     private int score;
 
+    public enum Message{
+        PENALTY,
+        POINT
+    }
+
     public void removeCardSlotsFromIncomingActionsQueue(int[] currCardSlots) {
         for (Integer i : incomingActions) {
             for (int slot : currCardSlots) {
@@ -66,18 +71,12 @@ public class Player implements Runnable {
             }
         }
     }
-
-    public enum Message{
-        PENALTY,
-        POINT
-    }
     public final ConcurrentLinkedQueue<Integer> incomingActions;
     private final ConcurrentLinkedQueue<Message> messages;
 
-    private boolean[] tokenOnSlot;
+    private final boolean[] tokenOnSlot;
     private int tokensPlaced;
     private final int SECOND = 1000;
-    private final Object o = new Object();
     private final int noFreeze = 0;
     private final int noTokens = 0;
 
@@ -98,7 +97,7 @@ public class Player implements Runnable {
         this.dealer = dealer;
         incomingActions = new ConcurrentLinkedQueue<>();
         messages = new ConcurrentLinkedQueue<>();
-        tokenOnSlot = new boolean[env.config.rows * env.config.columns];
+        tokenOnSlot = new boolean[env.config.tableSize];
         tokensPlaced = noTokens;
     }
     public boolean[] getTokenOnSlot(){
@@ -110,11 +109,11 @@ public class Player implements Runnable {
     @Override
     public void run() {
         synchronized (dealer) {
+            env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + "starting.");
             dealer.iStarted();
             dealer.notifyAll(); //not sure if this will make it fair exactly.
         }
         playerThread = Thread.currentThread();
-        env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + "starting.");
         if (!human) createArtificialIntelligence();
         while (!terminate) {
             try {
@@ -132,15 +131,15 @@ public class Player implements Runnable {
                     if (tokensPlaced > noTokens)
                         tokensPlaced--;
                 } else {
-                    if (tokensPlaced < table.legalSetSize) {
+                    if (tokensPlaced < env.config.featureSize) {
                         table.placeToken(id, nextAction);
                         tokenOnSlot[nextAction] = true;
-                        if (++tokensPlaced == table.legalSetSize) {
-                            int[] currSetCardSlots = new int[table.legalSetSize];
+                        if (++tokensPlaced == env.config.featureSize) {
+                            int[] currSetCardSlots = new int[env.config.featureSize];
                             int cSCSInd = 0;
                             for (int i = 0; i < tokenOnSlot.length; i++) {
                                 if (tokenOnSlot[i]) {
-                                    if (cSCSInd == table.legalSetSize)
+                                    if (cSCSInd == env.config.featureSize)
                                         break;
                                     currSetCardSlots[cSCSInd] = i;
                                     cSCSInd++;
@@ -153,11 +152,6 @@ public class Player implements Runnable {
 
             } catch (NoSuchElementException ignored) {}
         }
-        /*
-        if (!human)
-            while (aiThread.isAlive())
-                try { aiThread.join(); } catch (InterruptedException ignored) {}
-         */
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
     }
 
@@ -168,8 +162,11 @@ public class Player implements Runnable {
     private void createArtificialIntelligence() {
         // note: this is a very, very smart AI (!)
         aiThread = new Thread(() -> {
-            env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " starting.");
-            dealer.iStarted();
+            synchronized (dealer) {
+                env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " starting.");
+                dealer.iStarted();
+                dealer.notifyAll();
+            }
             while (!terminateAI) {
                 keyPressSimulator();
             }
@@ -179,7 +176,7 @@ public class Player implements Runnable {
     }
 
     private void keyPressSimulator() {
-        keyPressed(((int)Math.floor(Math.random()*env.config.rows*env.config.columns)));
+        keyPressed(((int)Math.floor(Math.random() * env.config.tableSize)));
     }
     /**
      * Called when the game should be terminated due to an external event.
@@ -230,7 +227,7 @@ public class Player implements Runnable {
                 wait((env.config.pointFreezeMillis > noFreeze) ? env.config.pointFreezeMillis : 1);
             } catch (InterruptedException ignored1) {}
         }
-        env.ui.setFreeze(id,noFreeze); //TODO this is magic number, please change
+        env.ui.setFreeze(id,noFreeze);
 
 
     }

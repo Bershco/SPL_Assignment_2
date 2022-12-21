@@ -12,14 +12,43 @@ with a short description of:
 
 1. Fully supporting all configuration fields and avoiding the use of magic numbers
 
-We are not entitled to this bonus.
+I. Anywhere I might've used a recurring number - I switched to using the configuration fields.
+let's say - I wanted to use the number 3 (in regard to a legal set size) so I used env.config.featureSize.
+let's say I wanted to use the number 12 (in regard to the table size) so I used env.config.tableSize
+and so on...
+
+II.The following rows are examples for methods used in configuration variables:
+
+featureSize - Player::run()
+deckSize - Dealer()
+humanPlayers - Dealer::run()
+turnTimeoutMillis - Dealer::updateTimerDisplay()
+turnTimeoutWarningMillis - Dealer::updateTimerDisplay()
+penaltyFreezeMillis - Player::penalty()
+pointFreezeMillis - Player::point()
+tableDelayMillis - Table::removeCard()
+tableSize - Dealer::placeCardsOnTable()
+rows \ columns - in the definition of tableSize
+
+
+III. We manually checked for recurring numbers used in the job.
+
 
 --------------------
 
 2. Terminating all threads (that you created) gracefully and in reverse order to the order they were created in.
 
-We are not entitled to this bonus.
+I. We used a blocking queue of Threads inside dealer.java (line 43) called fairnessTerminatingSequence,
+which is holding the thread start of run sequence, at the start of the run of each thread, it locks the dealer
+object, and adds itself to the queue.
+At the end of the program, whether was it by exiting manually or finishing the game, the dealer is in charge
+of ending all other threads, and then terminates itself.
 
+II. Addition to the fairnessTerminatingSequence happens inside dealer::iStarted()
+Reordering and removal of threads from the queue happens inside dealer::terminatePlayers()
+
+III. We ran the program in a lot of configurations and tested the log files manually for the order
+of the thread creation and deletion.
 --------------------
 
 3. Handling the config.turnTimeoutMillis value as follows:

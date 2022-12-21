@@ -66,8 +66,8 @@ public class Dealer implements Runnable {
     public void run() {
         dealerThread = Thread.currentThread();
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " starting.");
-        Thread[] playerThreads = new Thread[players.length];
-        for(int i = 0 ; i< playerThreads.length; i++){
+        Thread[] playerThreads = new Thread[env.config.humanPlayers];
+        for(int i = 0 ; i< env.config.humanPlayers; i++){
             playerThreads[i] = new Thread(players[i]);
             playerThreads[i].start();
         }
@@ -76,7 +76,7 @@ public class Dealer implements Runnable {
             placeCardsOnTable();
             updateTimerDisplay(true);
             timerLoop();
-            if (terminate) break;
+            //if (terminate) break;
             removeAllCardsFromTable();
         }
         announceWinners();
@@ -157,7 +157,7 @@ public class Dealer implements Runnable {
 
     private boolean checkDeckAndTable() {
         List<Integer> tempDeck = new LinkedList<>(deck);
-        for (int i = 0; i < table.slotToCard.length; i++)
+        for (int i = 0; i < env.config.tableSize; i++)
             if (table.slotToCard[i] != null)
                 tempDeck.add(table.slotToCard[i]);
 
@@ -241,7 +241,7 @@ public class Dealer implements Runnable {
     private void placeCardsOnTable() {
         if (terminate) return;
         int min = 0;
-        for (int i = 0; i < table.slotToCard.length; i++) {
+        for (int i = 0; i < env.config.tableSize; i++) {
             if (table.slotToCard[i] == null) {
                 int max = deck.size() - 1;
                 int random_num = (int)Math.floor(Math.random()*(max-min+1)+min);
@@ -286,7 +286,7 @@ public class Dealer implements Runnable {
      */
     private void removeAllCardsFromTable() {
         placedCards = false;
-        for(int i = 0; i < env.config.rows * env.config.columns; i++) {
+        for(int i = 0; i < env.config.tableSize; i++) {
             Integer cardValue = table.slotToCard[i];
             if (cardValue != null)
                 deck.add(cardValue);
@@ -323,7 +323,6 @@ public class Dealer implements Runnable {
                 bothQueues.notifyAll();
             }
             currCardSlots = cardSlots;
-
             int[] cardsAsArray = new int[cardSlots.length];
             for (int i = 0; i < cardSlots.length; i++) {
                 Integer temp = table.slotToCard[cardSlots[i]];
@@ -345,7 +344,7 @@ public class Dealer implements Runnable {
     private boolean checkIfSetExists() {
         List<Integer> currentTable = new LinkedList<>();
         Collections.addAll(currentTable, table.slotToCard);
-        for(int i = 0; i<table.slotToCard.length; i++){
+        for(int i = 0; i < env.config.tableSize; i++){
             if(table.slotToCard[i] == null){
                 return true;
             }
@@ -382,7 +381,6 @@ public class Dealer implements Runnable {
 
 
     public void iStarted() {
-        System.out.println(Thread.currentThread().getName());
         fairnessTerminatingSequence.add(Thread.currentThread());
     }
     /*
