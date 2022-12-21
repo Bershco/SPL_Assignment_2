@@ -77,7 +77,7 @@ public class Dealer implements Runnable {
             updateTimerDisplay(true);
             timerLoop();
             if (terminate) break;
-            removeAllCardsFromTable(); //TODO: remove all tokens on table and clear all queues because we update here thr table
+            removeAllCardsFromTable();
         }
         announceWinners();
         terminatePlayers();
@@ -171,13 +171,11 @@ public class Dealer implements Runnable {
      */
     private void removeCardsFromTable() {
 
-        //TODO: must fix the problem if two sets have some or all tokens that are going to be removed (identical sets or partially identical when one is the set that gonna be removed
         while(!terminate && !foundSet && System.currentTimeMillis() < reshuffleTime){
             checkNextSet();
             updateTimerDisplay(false);
         }
-        //TODO: allow other user to choose cards that are not in a current set that is being removed
-        //TODO: something wrong doesnt remove other players tokens
+
         if(foundSet){
             placedCards = false;
 
@@ -214,7 +212,6 @@ public class Dealer implements Runnable {
         }
     }
 
-    //TODO I really hope this works and doesnt fuck us up later, but this might be a cause for a lot of concurrency problems
     private void filterQueues(boolean[] keepOrNot) {
         synchronized (bothQueues) {
             LinkedBlockingQueue<int[]> queue1 = new LinkedBlockingQueue<>();
@@ -264,7 +261,7 @@ public class Dealer implements Runnable {
      * Sleep for a fixed amount of time or until the thread is awakened for some purpose.
      */
     private void sleepUntilWokenOrTimeout() {
-        //TODO : check how to fix
+
         synchronized (bothQueues){
             try {
                 if (!terminate)
