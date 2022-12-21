@@ -110,7 +110,6 @@ public class Player implements Runnable {
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + "starting.");
         if (!human) createArtificialIntelligence();
         while (!terminate) {
-            // TODO check if proper
             try {
                 if (!messages.isEmpty())
                     checkMessage();
@@ -163,7 +162,6 @@ public class Player implements Runnable {
         aiThread = new Thread(() -> {
             env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " starting.");
             while (!terminate) {
-                //TODO check if proper
                 keyPressSimulator();
             }
             env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
@@ -187,7 +185,7 @@ public class Player implements Runnable {
      * @param slot - the slot corresponding to the key pressed.
      */
     public void keyPressed(int slot) {
-        //TODO check what should happen if more than 3 actions are attempted to be inserted before the player thread attempts to remove them from the queue
+
         if (slotIsNull(slot)) return;
         if (incomingActions.size() < 3) {
             synchronized (incomingActions){
@@ -210,7 +208,6 @@ public class Player implements Runnable {
      * @post - the player's score is updated in the ui.
      */
     public void point() {
-        // TODO check if proper
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
 
         env.ui.setScore(id, ++score);
@@ -249,7 +246,7 @@ public class Player implements Runnable {
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
-        // TODO check if proper
+
         for (long counter = env.config.penaltyFreezeMillis; counter >= 0; counter -= SECOND)
             try {
                 env.ui.setFreeze(id,counter);
