@@ -48,6 +48,7 @@ public class Dealer implements Runnable {
     private final long practicallyZeroMS = 9;
     private final long actualZero = 0;
     public boolean placedCards = false;
+    private boolean reverseTimer;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -57,6 +58,7 @@ public class Dealer implements Runnable {
         fairnessQueueCardsSlots = new LinkedBlockingQueue<>();
         fairnessQueuePlayers = new LinkedBlockingQueue<>();
         fairnessTerminatingSequence = new LinkedBlockingQueue<>();
+        reverseTimer = env.config.turnTimeoutMillis <= actualZero; //bonus 3
     }
 
     /**
@@ -66,9 +68,9 @@ public class Dealer implements Runnable {
     public void run() {
         dealerThread = Thread.currentThread();
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " starting.");
-        Thread[] playerThreads = new Thread[players.length];
-        for(int i = 0 ; i< playerThreads.length; i++){
-            playerThreads[i] = new Thread(players[i]);
+        Thread[] playerThreads = new Thread[env.config.players];
+        for(int i = 0 ; i< env.config.players; i++){
+            playerThreads[i] = new Thread(players[i],Player.playerThreadName+"-"+i);
             playerThreads[i].start();
         }
 
@@ -76,7 +78,7 @@ public class Dealer implements Runnable {
             placeCardsOnTable();
             updateTimerDisplay(true);
             timerLoop();
-            if (terminate) break;
+            //if (terminate) break;
             removeAllCardsFromTable();
         }
         announceWinners();
@@ -88,7 +90,7 @@ public class Dealer implements Runnable {
      * The inner loop of the dealer thread that runs as long as the countdown did not time out.
      */
     private void timerLoop() {
-        while (!terminate && System.currentTimeMillis() < reshuffleTime) {
+        while (checkTableForSets() && !terminate && ((System.currentTimeMillis() < reshuffleTime && !reverseTimer) || reverseTimer && System.currentTimeMillis() >= reshuffleTime)) {
             sleepUntilWokenOrTimeout();
             updateTimerDisplay(false);
             removeCardsFromTable();
@@ -120,15 +122,15 @@ public class Dealer implements Runnable {
             if (curr != null) {
                 String currName = curr.getName();
                 String[] afterSplit = currName.split("-");
-                char determiner = afterSplit[0].charAt(0);
+                char delimiter = afterSplit[0].charAt(0); //TODO: check if you can somehow make the names into a static variable to be reached by this method
                 int id = Integer.parseInt(afterSplit[1]);
-                if (determiner == 'c') {
+                if (delimiter == Player.aiThreadName.charAt(0)) {
                     players[id].terminateAI();
                     try {
                         players[id].aiThread.join();
                     } catch (InterruptedException ignored) {}
                 }
-                else if (determiner == 'T') {
+                else if (delimiter == Player.playerThreadName.charAt(0)) {
                     players[id].terminate();
                     while (players[id].playerThread.isAlive()) {
                         synchronized (this) {
@@ -157,7 +159,7 @@ public class Dealer implements Runnable {
 
     private boolean checkDeckAndTable() {
         List<Integer> tempDeck = new LinkedList<>(deck);
-        for (int i = 0; i < table.slotToCard.length; i++)
+        for (int i = 0; i < env.config.tableSize; i++)
             if (table.slotToCard[i] != null)
                 tempDeck.add(table.slotToCard[i]);
 
@@ -169,7 +171,7 @@ public class Dealer implements Runnable {
      */
     private void removeCardsFromTable() {
 
-        while(!terminate && !foundSet && System.currentTimeMillis() < reshuffleTime){
+        while(!terminate && !foundSet && ((System.currentTimeMillis() < reshuffleTime && !reverseTimer) || reverseTimer && System.currentTimeMillis() >= reshuffleTime)){
             checkNextSet();
             updateTimerDisplay(false);
         }
@@ -241,7 +243,7 @@ public class Dealer implements Runnable {
     private void placeCardsOnTable() {
         if (terminate) return;
         int min = 0;
-        for (int i = 0; i < table.slotToCard.length; i++) {
+        for (int i = 0; i < env.config.tableSize; i++) {
             if (table.slotToCard[i] == null) {
                 int max = deck.size() - 1;
                 int random_num = (int)Math.floor(Math.random()*(max-min+1)+min);
@@ -274,11 +276,20 @@ public class Dealer implements Runnable {
      */
     private void updateTimerDisplay(boolean reset) {
         if (terminate) return;
-        if(reset) {
-            env.ui.setCountdown(env.config.turnTimeoutMillis, false);
-            reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
+        if (!reverseTimer) {
+            if (reset) {
+                env.ui.setCountdown(env.config.turnTimeoutMillis, false);
+                reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
+            } else
+                env.ui.setCountdown((reshuffleTime - System.currentTimeMillis() > practicallyZeroMS) ? reshuffleTime - System.currentTimeMillis() : actualZero, reshuffleTime - System.currentTimeMillis() < env.config.turnTimeoutWarningMillis);
         }
-        else env.ui.setCountdown((reshuffleTime - System.currentTimeMillis() > practicallyZeroMS) ? reshuffleTime - System.currentTimeMillis() : actualZero, reshuffleTime - System.currentTimeMillis() < env.config.turnTimeoutWarningMillis);
+        else {
+            if (reset) {
+                reshuffleTime = System.currentTimeMillis();
+            }
+            if (env.config.turnTimeoutMillis == 0)
+                env.ui.setElapsed(System.currentTimeMillis() - reshuffleTime);
+        }
     }
 
     /**
@@ -286,14 +297,13 @@ public class Dealer implements Runnable {
      */
     private void removeAllCardsFromTable() {
         placedCards = false;
-        for(int i = 0; i < env.config.rows * env.config.columns; i++) {
+        for(int i = 0; i < env.config.tableSize; i++) {
             Integer cardValue = table.slotToCard[i];
             if (cardValue != null)
                 deck.add(cardValue);
             for(Player p : players){
                 if (p.getTokenOnSlot()[i])
-                    p.removeMyTokens(new int[]{i}); //pretty sure this line is every line after this
-                //also pretty sure it was somehow broken before.
+                    p.removeMyTokens(new int[]{i});
             }
             table.removeCard(i);
         }
@@ -323,7 +333,6 @@ public class Dealer implements Runnable {
                 bothQueues.notifyAll();
             }
             currCardSlots = cardSlots;
-
             int[] cardsAsArray = new int[cardSlots.length];
             for (int i = 0; i < cardSlots.length; i++) {
                 Integer temp = table.slotToCard[cardSlots[i]];
@@ -345,7 +354,7 @@ public class Dealer implements Runnable {
     private boolean checkIfSetExists() {
         List<Integer> currentTable = new LinkedList<>();
         Collections.addAll(currentTable, table.slotToCard);
-        for(int i = 0; i<table.slotToCard.length; i++){
+        for(int i = 0; i < env.config.tableSize; i++){
             if(table.slotToCard[i] == null){
                 return true;
             }
@@ -382,8 +391,20 @@ public class Dealer implements Runnable {
 
 
     public void iStarted() {
-        System.out.println(Thread.currentThread().getName());
         fairnessTerminatingSequence.add(Thread.currentThread());
+    }
+
+    private boolean checkTableForSets() {
+        List<Integer> temp = new LinkedList<>(Arrays.asList(table.slotToCard));
+        boolean nullPresent = false;
+        for (Integer i : temp)
+            if (i == null) {
+                nullPresent = true;
+                break;
+            }
+        if (nullPresent) return true;
+        List<int[]> output = env.util.findSets(temp, 1);
+        return output.size() > 0;
     }
     /*
      * Functions to call for testing only

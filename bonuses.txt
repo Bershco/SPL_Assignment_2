@@ -12,14 +12,44 @@ with a short description of:
 
 1. Fully supporting all configuration fields and avoiding the use of magic numbers
 
-We are not entitled to this bonus.
+I. Anywhere I might've used a recurring number - I switched to using the configuration fields.
+let's say - I wanted to use the number 3 (in regard to a legal set size) so I used env.config.featureSize.
+let's say I wanted to use the number 12 (in regard to the table size) so I used env.config.tableSize
+and so on...
+
+II.The following rows are examples for methods used in configuration variables:
+
+featureSize - Player::run()
+deckSize - Dealer()
+players - Dealer::run()
+humanPlayers \ computerPlayers - in the definition of 'players'
+turnTimeoutMillis - Dealer::updateTimerDisplay()
+turnTimeoutWarningMillis - Dealer::updateTimerDisplay()
+penaltyFreezeMillis - Player::penalty()
+pointFreezeMillis - Player::point()
+tableDelayMillis - Table::removeCard()
+tableSize - Dealer::placeCardsOnTable()
+rows \ columns - in the definition of 'tableSize'
+
+
+III. We manually checked for recurring numbers used in the job.
+
 
 --------------------
 
 2. Terminating all threads (that you created) gracefully and in reverse order to the order they were created in.
 
-We are not entitled to this bonus.
+I. We used a blocking queue of Threads inside dealer.java (line 43) called fairnessTerminatingSequence,
+which is holding the thread start of run sequence, at the start of the run of each thread, it locks the dealer
+object, and adds itself to the queue.
+At the end of the program, whether was it by exiting manually or finishing the game, the dealer is in charge
+of ending all other threads, and then terminates itself.
 
+II. Addition to the fairnessTerminatingSequence happens inside dealer::iStarted()
+Reordering and removal of threads from the queue happens inside dealer::terminatePlayers()
+
+III. We ran the program in a lot of configurations and tested the log files manually for the order
+of the thread creation and deletion.
 --------------------
 
 3. Handling the config.turnTimeoutMillis value as follows:
@@ -27,7 +57,12 @@ config.turnTimeoutMillis < 0: display nothing.
 config.turnTimeoutMillis = 0: display a timer since the last action (reshuffle or set collected).
 Note: in modes without a countdown timer the dealer must ensure there is always at least one legal set on the table.
 
-We are not entitled to this bonus.
+I. Dealer::reverseTimer - boolean to determine whether the dealer should count FROM 0 or TO 0.
+Also, added a method Dealer::checkTableForSets() to check for sets on the table, and reshuffle if so.
+
+II. Dealer::checkTableForSets , Dealer::updateTimerDisplay
+
+III. Manually ran the game multiple times, found some bugs, and for each one fixed and started the manual testing again.
 
 --------------------
 
