@@ -120,7 +120,7 @@ public class Dealer implements Runnable {
             if (curr != null) {
                 String currName = curr.getName();
                 String[] afterSplit = currName.split("-");
-                char determiner = afterSplit[0].charAt(0);
+                char determiner = afterSplit[0].charAt(0); //TODO: check if you can somehow make the names into a static variable to be reached by this method
                 int id = Integer.parseInt(afterSplit[1]);
                 if (determiner == 'c') {
                     players[id].terminateAI();

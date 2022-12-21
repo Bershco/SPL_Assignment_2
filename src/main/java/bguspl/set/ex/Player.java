@@ -78,6 +78,8 @@ public class Player implements Runnable {
     private int tokensPlaced;
     private final int SECOND = 1000;
     private final Object o = new Object();
+    private final int noFreeze = 0;
+    private final int noTokens = 0;
 
     /**
      * The class constructor.
@@ -97,7 +99,7 @@ public class Player implements Runnable {
         incomingActions = new ConcurrentLinkedQueue<>();
         messages = new ConcurrentLinkedQueue<>();
         tokenOnSlot = new boolean[env.config.rows * env.config.columns];
-        tokensPlaced = 0;
+        tokensPlaced = noTokens;
     }
     public boolean[] getTokenOnSlot(){
         return tokenOnSlot;
@@ -127,7 +129,7 @@ public class Player implements Runnable {
                 if (tokenOnSlot[nextAction]) {
                     table.removeToken(id, nextAction);
                     tokenOnSlot[nextAction] = false;
-                    if (tokensPlaced > 0)
+                    if (tokensPlaced > noTokens)
                         tokensPlaced--;
                 } else {
                     if (tokensPlaced < table.legalSetSize) {
@@ -138,7 +140,7 @@ public class Player implements Runnable {
                             int cSCSInd = 0;
                             for (int i = 0; i < tokenOnSlot.length; i++) {
                                 if (tokenOnSlot[i]) {
-                                    if (cSCSInd == 3)
+                                    if (cSCSInd == table.legalSetSize)
                                         break;
                                     currSetCardSlots[cSCSInd] = i;
                                     cSCSInd++;
@@ -225,10 +227,10 @@ public class Player implements Runnable {
         env.ui.setFreeze(id,env.config.pointFreezeMillis);
         synchronized (this){
             try {
-                wait((env.config.pointFreezeMillis > 0) ? env.config.pointFreezeMillis : 1);
+                wait((env.config.pointFreezeMillis > noFreeze) ? env.config.pointFreezeMillis : 1);
             } catch (InterruptedException ignored1) {}
         }
-        env.ui.setFreeze(id,0); //TODO this is magic number, please change
+        env.ui.setFreeze(id,noFreeze); //TODO this is magic number, please change
 
 
     }
@@ -257,10 +259,10 @@ public class Player implements Runnable {
      */
     public void penalty() {
 
-        for (long counter = env.config.penaltyFreezeMillis; counter >= 0; counter -= SECOND)
+        for (long counter = env.config.penaltyFreezeMillis; counter >= noFreeze; counter -= SECOND)
             try {
                 env.ui.setFreeze(id,counter);
-                if (counter > 0)
+                if (counter > noFreeze)
                     synchronized (this) {
                         wait(SECOND);
                     }
@@ -272,7 +274,7 @@ public class Player implements Runnable {
             for (int slotId : cardSlots) {
                 if (tokenOnSlot[slotId]) {
                     table.removeToken(id, slotId);
-                    tokensPlaced = (tokensPlaced >= 0) ? tokensPlaced - 1 : tokensPlaced; //Only reduce tokensPlaced if it's above or at 0
+                    tokensPlaced = (tokensPlaced >= noTokens) ? tokensPlaced - 1 : tokensPlaced; //Only reduce tokensPlaced if it's above or at 0
                     tokenOnSlot[slotId] = false;
                 }
             }
