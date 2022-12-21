@@ -130,7 +130,7 @@ public class Player implements Runnable {
                     if (tokensPlaced > 0)
                         tokensPlaced--;
                 } else {
-                    if (tokensPlaced < table.legalSetSize) {
+                    if (tokensPlaced < table.legalSetSize & dealer.placedCards) {
                         table.placeToken(id, nextAction);
                         tokenOnSlot[nextAction] = true;
                         if (++tokensPlaced == table.legalSetSize) {

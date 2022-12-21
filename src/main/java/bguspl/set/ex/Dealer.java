@@ -76,8 +76,9 @@ public class Dealer implements Runnable {
             placeCardsOnTable();
             updateTimerDisplay(true);
             timerLoop();
-            if (terminate) break;
+            //if (terminate) break;
             removeAllCardsFromTable();
+
         }
         announceWinners();
         terminatePlayers();
@@ -240,6 +241,8 @@ public class Dealer implements Runnable {
     /**
      * Check if any cards can be removed from the deck and placed on the table.
      */
+    //@PRE:NONE
+
     private void placeCardsOnTable() {
         if (terminate) return;
         int min = 0;
@@ -293,7 +296,7 @@ public class Dealer implements Runnable {
             if (cardValue != null)
                 deck.add(cardValue);
             for(Player p : players){
-                if (p.getTokenOnSlot()[i])
+
                     p.removeMyTokens(new int[]{i}); //pretty sure this line is every line after this
                 //also pretty sure it was somehow broken before.
             }
