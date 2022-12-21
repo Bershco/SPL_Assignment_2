@@ -79,6 +79,8 @@ public class Player implements Runnable {
     private final int SECOND = 1000;
     private final int noFreeze = 0;
     private final int noTokens = 0;
+    public static final String playerThreadName = "Player";
+    public static final String aiThreadName = "Computer";
 
     /**
      * The class constructor.
@@ -171,7 +173,7 @@ public class Player implements Runnable {
                 keyPressSimulator();
             }
             env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
-        }, "computer-" + id);
+        }, aiThreadName + "-" + id);
         aiThread.start();
     }
 

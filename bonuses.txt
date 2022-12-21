@@ -21,14 +21,15 @@ II.The following rows are examples for methods used in configuration variables:
 
 featureSize - Player::run()
 deckSize - Dealer()
-humanPlayers - Dealer::run()
+players - Dealer::run()
+humanPlayers \ computerPlayers - in the definition of 'players'
 turnTimeoutMillis - Dealer::updateTimerDisplay()
 turnTimeoutWarningMillis - Dealer::updateTimerDisplay()
 penaltyFreezeMillis - Player::penalty()
 pointFreezeMillis - Player::point()
 tableDelayMillis - Table::removeCard()
 tableSize - Dealer::placeCardsOnTable()
-rows \ columns - in the definition of tableSize
+rows \ columns - in the definition of 'tableSize'
 
 
 III. We manually checked for recurring numbers used in the job.
@@ -56,7 +57,12 @@ config.turnTimeoutMillis < 0: display nothing.
 config.turnTimeoutMillis = 0: display a timer since the last action (reshuffle or set collected).
 Note: in modes without a countdown timer the dealer must ensure there is always at least one legal set on the table.
 
-We are not entitled to this bonus.
+I. Dealer::reverseTimer - boolean to determine whether the dealer should count FROM 0 or TO 0.
+Also, added a method Dealer::checkTableForSets() to check for sets on the table, and reshuffle if so.
+
+II. Dealer::checkTableForSets , Dealer::updateTimerDisplay
+
+III. Manually ran the game multiple times, found some bugs, and for each one fixed and started the manual testing again.
 
 --------------------
 
