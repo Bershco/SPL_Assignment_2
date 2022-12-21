@@ -69,6 +69,11 @@ class TableTest {
     }
 
     @Test
+    void countCardsTest() {
+
+    }
+
+    @Test
     void countCards_NoSlotsAreFilled() {
 
         assertEquals(0, table.countCards());

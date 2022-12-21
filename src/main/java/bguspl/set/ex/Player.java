@@ -1,7 +1,6 @@
 package bguspl.set.ex;
 
 import java.util.NoSuchElementException;
-import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
@@ -40,7 +39,7 @@ public class Player implements Runnable {
     /**
      * The thread of the AI (computer) player (an additional thread used to generate key presses).
      */
-    private Thread aiThread;
+    public Thread aiThread;
 
     /**
      * True iff the player is human (not a computer player).
@@ -51,6 +50,8 @@ public class Player implements Runnable {
      * True iff game should be terminated due to an external event.
      */
     private volatile boolean terminate;
+
+    private volatile boolean terminateAI;
 
     /**
      * The current score of the player.
@@ -106,6 +107,10 @@ public class Player implements Runnable {
      */
     @Override
     public void run() {
+        synchronized (dealer) {
+            dealer.iStarted();
+            dealer.notifyAll(); //not sure if this will make it fair exactly.
+        }
         playerThread = Thread.currentThread();
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + "starting.");
         if (!human) createArtificialIntelligence();
@@ -139,7 +144,6 @@ public class Player implements Runnable {
                                     cSCSInd++;
                                 }
                             }
-                            if (cSCSInd != 3) System.out.println("2");
                             dealer.iGotASet(this, currSetCardSlots);
                         }
                     }
@@ -147,9 +151,11 @@ public class Player implements Runnable {
 
             } catch (NoSuchElementException ignored) {}
         }
+        /*
         if (!human)
             while (aiThread.isAlive())
                 try { aiThread.join(); } catch (InterruptedException ignored) {}
+         */
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
     }
 
@@ -161,7 +167,8 @@ public class Player implements Runnable {
         // note: this is a very, very smart AI (!)
         aiThread = new Thread(() -> {
             env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " starting.");
-            while (!terminate) {
+            dealer.iStarted();
+            while (!terminateAI) {
                 keyPressSimulator();
             }
             env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
@@ -177,6 +184,10 @@ public class Player implements Runnable {
      */
     public void terminate() {
         terminate = true;
+    }
+
+    public void terminateAI() {
+        terminateAI = true;
     }
 
     /**
@@ -214,7 +225,6 @@ public class Player implements Runnable {
         env.ui.setFreeze(id,env.config.pointFreezeMillis);
         synchronized (this){
             try {
-                System.out.println(Thread.currentThread().getName() + " is waiting for player instance");
                 wait((env.config.pointFreezeMillis > 0) ? env.config.pointFreezeMillis : 1);
             } catch (InterruptedException ignored1) {}
         }

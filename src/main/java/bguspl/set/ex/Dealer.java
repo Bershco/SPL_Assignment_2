@@ -40,6 +40,7 @@ public class Dealer implements Runnable {
 
     private final BlockingQueue<int[]> fairnessQueueCardsSlots;
     private final BlockingQueue<Player> fairnessQueuePlayers;
+    private final BlockingQueue<Thread> fairnessTerminatingSequence;
     private final Object bothQueues = new Object();
     private boolean foundSet;
     private int[] currCardSlots;
@@ -55,6 +56,7 @@ public class Dealer implements Runnable {
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
         fairnessQueueCardsSlots = new LinkedBlockingQueue<>();
         fairnessQueuePlayers = new LinkedBlockingQueue<>();
+        fairnessTerminatingSequence = new LinkedBlockingQueue<>();
     }
 
     /**
@@ -75,10 +77,10 @@ public class Dealer implements Runnable {
             updateTimerDisplay(true);
             timerLoop();
             if (terminate) break;
-            System.out.println("timer loop finished");
             removeAllCardsFromTable();
         }
         announceWinners();
+        terminatePlayers();
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
     }
 
@@ -100,17 +102,49 @@ public class Dealer implements Runnable {
      * Called when the game should be terminated due to an external event.
      */
     public void terminate() {
-        if (terminate) return;
         terminate = true;
-        for(int i = players.length - 1; i >= 0 ; i--) {
+    }
+
+    private void terminatePlayers() {
+        int size = fairnessTerminatingSequence.size();
+        synchronized (fairnessTerminatingSequence) {
+            Stack<Thread> s = new Stack<>();
+            for (int i = 0; i < size; i++) {
+                s.push(fairnessTerminatingSequence.remove());
+            }
+            for (int i = 0; i < size; i++) {
+                fairnessTerminatingSequence.add(s.pop());
+            }
+        }
+        for(int i = 0; i <= size; i++) {
             //So that the player threads will be eliminated in reverse order to the order they were created by
-            players[i].terminate();
-            synchronized (this) {notifyAll();}
-            synchronized (table) {table.notifyAll();}
-            synchronized (bothQueues) {bothQueues.notifyAll();}
-            try {
-                players[i].playerThread.join();
-            } catch (InterruptedException ignored) {}
+            Thread curr = fairnessTerminatingSequence.remove();
+            if (curr != null) {
+                String currName = curr.getName();
+                String[] afterSplit = currName.split("-");
+                char determiner = afterSplit[0].charAt(0);
+                int id = Integer.parseInt(afterSplit[1]);
+                if (determiner == 'c') {
+                    players[id].terminateAI();
+                    try {
+                        players[id].aiThread.join();
+                    } catch (InterruptedException ignored) {}
+                }
+                else if (determiner == 'T') {
+                    players[id].terminate();
+                    while (players[id].playerThread.isAlive()) {
+                        synchronized (this) {
+                            notifyAll();
+                        }
+                        synchronized (table) {
+                            table.notifyAll();
+                        }
+                        synchronized (bothQueues) {
+                            bothQueues.notifyAll();
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -230,7 +264,6 @@ public class Dealer implements Runnable {
 
         synchronized (bothQueues){
             try {
-                System.out.println(Thread.currentThread().getName() + " is waiting for dealer instance");
                 if (!terminate)
                     bothQueues.wait(env.config.tableDelayMillis);
                 bothQueues.notifyAll();
@@ -276,7 +309,6 @@ public class Dealer implements Runnable {
             fairnessQueuePlayers.add(p);
             try {
                 if (!fairnessQueuePlayers.isEmpty()) {
-                    System.out.println(Thread.currentThread().getName() + " is waiting for bothQueues");
                     bothQueues.wait();
                 }
             } catch (InterruptedException ignored) {}
@@ -350,6 +382,11 @@ public class Dealer implements Runnable {
         env.ui.announceWinner(winners);
     }
 
+
+    public void iStarted() {
+        System.out.println(Thread.currentThread().getName());
+        fairnessTerminatingSequence.add(Thread.currentThread());
+    }
     /*
      * Functions to call for testing only
      */
@@ -359,5 +396,4 @@ public class Dealer implements Runnable {
     public void removeAllCards() {
         this.removeAllCardsFromTable();
     }
-
 }
