@@ -85,8 +85,6 @@ public class Dealer implements Runnable {
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
     }
 
-
-
     /**
      * The inner loop of the dealer thread that runs as long as the countdown did not time out.
      */
@@ -117,7 +115,7 @@ public class Dealer implements Runnable {
                 fairnessTerminatingSequence.add(s.pop());
             }
         }
-        for(int i = 0; i <= size; i++) {
+        for(int i = 0; i < size; i++) {
             //So that the player threads will be eliminated in reverse order to the order they were created by
             Thread curr = fairnessTerminatingSequence.remove();
             if (curr != null) {

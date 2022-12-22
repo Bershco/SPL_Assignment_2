@@ -68,10 +68,6 @@ class TableTest {
         assertEquals(2, (int) cardToSlot[8]);
     }
 
-    @Test
-    void countCardsTest() {
-
-    }
 
     @Test
     void countCards_NoSlotsAreFilled() {
