@@ -44,7 +44,7 @@ public class Dealer implements Runnable {
     private final Object bothQueues = new Object();
     private boolean foundSet;
     private int[] currCardSlots;
-    private Thread dealerThread;
+    //private Thread dealerThread;
     private final long practicallyZeroMS = 9;
     private final long actualZero = 0;
     public boolean placedCards = false;
@@ -66,7 +66,7 @@ public class Dealer implements Runnable {
      */
     @Override
     public void run() {
-        dealerThread = Thread.currentThread();
+        //dealerThread = Thread.currentThread();
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " starting.");
         Thread[] playerThreads = new Thread[env.config.players];
         for(int i = 0 ; i< env.config.players; i++){
@@ -78,7 +78,6 @@ public class Dealer implements Runnable {
             placeCardsOnTable();
             updateTimerDisplay(true);
             timerLoop();
-            //if (terminate) break;
             removeAllCardsFromTable();
         }
         announceWinners();
@@ -105,6 +104,9 @@ public class Dealer implements Runnable {
         terminate = true;
     }
 
+    /**
+     * Called at the end of dealer thread
+     */
     private void terminatePlayers() {
         int size = fairnessTerminatingSequence.size();
         synchronized (fairnessTerminatingSequence) {
@@ -122,7 +124,7 @@ public class Dealer implements Runnable {
             if (curr != null) {
                 String currName = curr.getName();
                 String[] afterSplit = currName.split("-");
-                char delimiter = afterSplit[0].charAt(0); //TODO: check if you can somehow make the names into a static variable to be reached by this method
+                char delimiter = afterSplit[0].charAt(0);
                 int id = Integer.parseInt(afterSplit[1]);
                 if (delimiter == Player.aiThreadName.charAt(0)) {
                     players[id].terminateAI();
@@ -157,6 +159,10 @@ public class Dealer implements Runnable {
         return terminate || checkDeckAndTable() || !checkIfSetExists();
     }
 
+    /**
+     * checks if there are sets on table
+     * @return true if there is no set in deck
+     */
     private boolean checkDeckAndTable() {
         List<Integer> tempDeck = new LinkedList<>(deck);
         for (int i = 0; i < env.config.tableSize; i++)
@@ -212,6 +218,10 @@ public class Dealer implements Runnable {
         }
     }
 
+    /**
+     * filters all players which have tokens on current set
+     * @param keepOrNot an array that tells if player stays in the queue or not
+     */
     private void filterQueues(boolean[] keepOrNot) {
         synchronized (bothQueues) {
             LinkedBlockingQueue<int[]> queue1 = new LinkedBlockingQueue<>();
@@ -313,6 +323,11 @@ public class Dealer implements Runnable {
         fairnessQueuePlayers.clear();
     }
 
+    /**
+     * receives a set from player
+     * @param p player
+     * @param cardSlots slots of the set
+     */
     public void iGotASet(Player p, int[] cardSlots) {
         synchronized (bothQueues) {
             fairnessQueueCardsSlots.add(cardSlots);
@@ -325,6 +340,10 @@ public class Dealer implements Runnable {
             bothQueues.notifyAll();
         }
     }
+
+    /**
+     * checks the next set in queue
+     */
     private void checkNextSet() { //changed some things here in order to be able to remove the cards
         try {
             int[] cardSlots;
@@ -353,6 +372,10 @@ public class Dealer implements Runnable {
         } catch (NoSuchElementException ignored) {}
     }
 
+    /**
+     * checks if there is a set on the table
+     * @return true if there are sets on table
+     */
     private boolean checkIfSetExists() {
         List<Integer> currentTable = new LinkedList<>();
         Collections.addAll(currentTable, table.slotToCard);
@@ -391,7 +414,10 @@ public class Dealer implements Runnable {
         env.ui.announceWinner(winners);
     }
 
-
+    /**
+     * Helper method used by player and ai threads to tell the dealer they have started their run, used for
+     * bonus 2.
+     */
     public void iStarted() {
         fairnessTerminatingSequence.add(Thread.currentThread());
     }
@@ -408,13 +434,14 @@ public class Dealer implements Runnable {
         List<int[]> output = env.util.findSets(temp, 1);
         return output.size() > 0;
     }
-    /*
-     * Functions to call for testing only
+
+    /**
+     * methods for test :)
      */
     public void setCardsOnTable() {
         placeCardsOnTable();
     }
     public void removeAllCards() {
-        this.removeAllCardsFromTable();
+        removeAllCardsFromTable();
     }
 }
