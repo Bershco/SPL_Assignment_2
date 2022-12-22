@@ -133,7 +133,7 @@ public class Player implements Runnable {
                     if (tokensPlaced > noTokens)
                         tokensPlaced--;
                 } else {
-                    if (tokensPlaced < env.config.featureSize) {
+                    if (tokensPlaced < env.config.featureSize & dealer.placedCards) {
                         table.placeToken(id, nextAction);
                         tokenOnSlot[nextAction] = true;
                         if (++tokensPlaced == env.config.featureSize) {
@@ -195,6 +195,8 @@ public class Player implements Runnable {
      * This method is called when a key is pressed.
      *
      * @param slot - the slot corresponding to the key pressed.
+     * @pre - incomingActions is of size 2 or less
+     * @post - added a slot to incoming actions
      */
     public void keyPressed(int slot) {
 
@@ -255,6 +257,7 @@ public class Player implements Runnable {
     }
     /**
      * Penalize a player and perform other related actions.
+     *  @post - the player's score is not increased.
      */
     public void penalty() {
 
@@ -273,8 +276,9 @@ public class Player implements Runnable {
             for (int slotId : cardSlots) {
                 if (tokenOnSlot[slotId]) {
                     table.removeToken(id, slotId);
-                    tokensPlaced = (tokensPlaced >= noTokens) ? tokensPlaced - 1 : tokensPlaced; //Only reduce tokensPlaced if it's above or at 0
-                    tokenOnSlot[slotId] = false;
+                    //tokensPlaced = (tokensPlaced >= noTokens) ? tokensPlaced - 1 : tokensPlaced; //Only reduce tokensPlaced if it's above or at 0
+                    //tokenOnSlot[slotId] = false;
+
                 }
             }
             incomingActions.notifyAll();

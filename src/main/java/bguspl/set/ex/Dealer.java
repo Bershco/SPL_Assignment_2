@@ -178,11 +178,11 @@ public class Dealer implements Runnable {
 
         if(foundSet){
             placedCards = false;
-
             for (Player p : players) {
+                p.removeCardSlotsFromIncomingActionsQueue(currCardSlots);
                 table.removeTokens(p.id, currCardSlots);
                 p.removeMyTokens(currCardSlots);
-                p.removeCardSlotsFromIncomingActionsQueue(currCardSlots);
+
             }
             table.removeCardsAndTokensInSlots(currCardSlots);
             Iterator<int[]> fairnessQueuesIterator = fairnessQueueCardsSlots.iterator();
@@ -239,6 +239,7 @@ public class Dealer implements Runnable {
 
     /**
      * Check if any cards can be removed from the deck and placed on the table.
+     * @post - places cards on table where no cards are placed
      */
     private void placeCardsOnTable() {
         if (terminate) return;
@@ -294,6 +295,7 @@ public class Dealer implements Runnable {
 
     /**
      * Returns all the cards from the table to the deck.
+     * @post - remove all cards from table
      */
     private void removeAllCardsFromTable() {
         placedCards = false;
