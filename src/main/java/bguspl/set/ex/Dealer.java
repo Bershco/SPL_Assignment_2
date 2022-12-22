@@ -44,7 +44,6 @@ public class Dealer implements Runnable {
     private final Object bothQueues = new Object();
     private boolean foundSet;
     private int[] currCardSlots;
-    //private Thread dealerThread;
     private final long practicallyZeroMS = 9;
     private final long actualZero = 0;
     public boolean placedCards = false;
@@ -66,7 +65,6 @@ public class Dealer implements Runnable {
      */
     @Override
     public void run() {
-        //dealerThread = Thread.currentThread();
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " starting.");
         Thread[] playerThreads = new Thread[env.config.players];
         for(int i = 0 ; i< env.config.players; i++){
@@ -210,7 +208,6 @@ public class Dealer implements Runnable {
             }
             filterQueues(keepOrNot);
             foundSet = false;
-            //currCardSlots = null;
             placeCardsOnTable();
             updateTimerDisplay(true);
             if (checkDeckAndTable())
@@ -344,7 +341,7 @@ public class Dealer implements Runnable {
     /**
      * checks the next set in queue
      */
-    private void checkNextSet() { //changed some things here in order to be able to remove the cards
+    private void checkNextSet() {
         try {
             int[] cardSlots;
             Player p;

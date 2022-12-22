@@ -139,7 +139,7 @@ public class Player implements Runnable {
         synchronized (dealer) {
             env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + "starting.");
             dealer.iStarted();
-            dealer.notifyAll(); //not sure if this will make it fair exactly.
+            dealer.notifyAll();
         }
         playerThread = Thread.currentThread();
         if (!human) createArtificialIntelligence();
@@ -338,9 +338,8 @@ public class Player implements Runnable {
             for (int slotId : cardSlots) {
                 if (tokenOnSlot[slotId]) {
                     table.removeToken(id, slotId);
-                    //tokensPlaced = (tokensPlaced >= noTokens) ? tokensPlaced - 1 : tokensPlaced; //Only reduce tokensPlaced if it's above or at 0
-                    //tokenOnSlot[slotId] = false;
-
+                    tokensPlaced = (tokensPlaced >= noTokens) ? tokensPlaced - 1 : tokensPlaced; //Only reduce tokensPlaced if it's above or at 0
+                    tokenOnSlot[slotId] = false;
                 }
             }
             incomingActions.notifyAll();
