@@ -31,7 +31,7 @@ public class Dealer implements Runnable {
     /**
      * True iff game should be terminated due to an external event.
      */
-    private volatile boolean terminate;
+    protected volatile boolean terminate;
 
     /**
      * The time when the dealer needs to reshuffle the deck due to turn timeout.
@@ -40,11 +40,11 @@ public class Dealer implements Runnable {
 
     private final BlockingQueue<int[]> fairnessQueueCardsSlots;
     private final BlockingQueue<Player> fairnessQueuePlayers;
-    private final BlockingQueue<Thread> fairnessTerminatingSequence;
+    protected final BlockingQueue<Thread> fairnessTerminatingSequence;
     private final Object bothQueues = new Object();
     private boolean foundSet;
     private int[] currCardSlots;
-    private final long practicallyZeroMS = 9;
+    public final static long practicallyZeroMS = 9;
     private final long actualZero = 0;
     public boolean placedCards = false;
     private boolean reverseTimer;
@@ -414,6 +414,8 @@ public class Dealer implements Runnable {
     /**
      * Helper method used by player and ai threads to tell the dealer they have started their run, used for
      * bonus 2.
+     * @pre int size = fairnessTerminatingSequence.size()
+     * @post fairnessTerminatingSequence.size() == size + 1
      */
     public void iStarted() {
         fairnessTerminatingSequence.add(Thread.currentThread());

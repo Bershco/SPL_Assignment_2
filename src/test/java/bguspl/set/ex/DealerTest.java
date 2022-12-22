@@ -14,9 +14,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
     @ExtendWith(MockitoExtension.class)
     class DealerTest {
@@ -43,38 +40,31 @@ import static org.mockito.Mockito.when;
         void setUp() {
             // purposely do not find the configuration files (use defaults here).
             Env env = new Env(logger, new Config(logger, ""), ui, util);
-            player1 = new Player(env, dealer, table, 0, false);
-            player2 = new Player(env, dealer, table, 1, false);
-            Player [] players= {player1,player2};
-            dealer = new Dealer(env, table,players);
-            assertInvariants();
+            dealer = new Dealer(env, table, new Player[]{new Player(env, dealer, table, 0, false)});
         }
 
         @AfterEach
         void tearDown() {
-            assertInvariants();
         }
 
         @Test
-        void checkPlaceCardsOnTable(){
-            dealer.setCardsOnTable();
-            for(int i = 0; i<table.slotToCard.length; i++){
-                assertNotEquals(table.slotToCard[i], (Object) null);
-            }
-            for(int i = 0; i<table.cardToSlot.length; i++){
-                assertNotEquals(table.cardToSlot[i], (Object) null);
-            }
+        void iStarted_ActuallyAddsToQueue(){
+            Thread expectedThread = Thread.currentThread();
+            dealer.iStarted();
+            assertEquals(1,dealer.fairnessTerminatingSequence.size());
 
+            Thread t = dealer.fairnessTerminatingSequence.remove();
+
+            assertEquals(0,dealer.fairnessTerminatingSequence.size());
+
+            assertEquals(expectedThread,t);
         }
         @Test
-        void checkRemoveAllCardsFromTable(){
-            dealer.removeAllCards();
-            for(int i = 0; i<table.slotToCard.length; i++){
-                assertEquals(null,table.slotToCard[i]);
-            }
-            for(int i = 0; i<table.cardToSlot.length; i++){
-                assertEquals(null,table.cardToSlot[i]);
-            }
+        void terminate_Works(){
+            boolean expectedValue = false;
+            assertEquals(expectedValue,dealer.terminate);
+            dealer.terminate();
+            assertEquals(!expectedValue,dealer.terminate);
         }
 
     }

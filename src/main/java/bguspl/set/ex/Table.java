@@ -107,11 +107,22 @@ public class Table {
         slotToCard[slot] = null;
         synchronized (this) {
             try {
-                wait(env.config.tableDelayMillis);
+                wait(env.config.tableDelayMillis > 0 ? env.config.tableDelayMillis : Dealer.practicallyZeroMS);
             } catch (InterruptedException ignored) {
             }
         }
         env.ui.removeCard(slot);
+    }
+
+    /**
+     * Removes all cards from a the slots received by parameter.
+     * @param slots - the slots from which to remove the card.
+     * @post - the slots are empty.
+     */
+    public void removeCards(int[] slots) {
+        for (int i : slots) {
+            removeCard(i);
+        }
     }
 
     /**

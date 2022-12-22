@@ -12,22 +12,19 @@ import java.util.Properties;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.eq;
 
 class TableTest {
 
     Table table;
     private Integer[] slotToCard;
     private Integer[] cardToSlot;
-    public Player player1;
-    UserInterface ui;
 
     @BeforeEach
     void setUp() {
 
         Properties properties = new Properties();
-        properties.put("Rows", "2");
-        properties.put("Columns", "2");
+        properties.put("Rows", "3");
+        properties.put("Columns", "4");
         properties.put("FeatureSize", "3");
         properties.put("FeatureCount", "4");
         properties.put("TableDelaySeconds", "0");
@@ -36,13 +33,10 @@ class TableTest {
         MockLogger logger = new MockLogger();
         Config config = new Config(logger, properties);
         slotToCard = new Integer[config.tableSize];
-        cardToSlot = new Integer[config.deckSize];
-        ui = new MockUserInterface();
+        cardToSlot = new Integer[config.tableSize];
 
         Env env = new Env(logger, config, new MockUserInterface(), new MockUtil());
         table = new Table(env, slotToCard, cardToSlot);
-        Player[] players = new Player[1];
-        Player player1 = new Player(env,new Dealer(env,table,players),table,0,true);
     }
 
     private int fillSomeSlots() {
@@ -67,7 +61,6 @@ class TableTest {
         assertEquals(8, (int) slotToCard[2]);
         assertEquals(2, (int) cardToSlot[8]);
     }
-
 
     @Test
     void countCards_NoSlotsAreFilled() {
@@ -101,24 +94,25 @@ class TableTest {
         fillAllSlots();
         placeSomeCardsAndAssert();
     }
-    @Test
-    void placeToken(){
-        table.placeToken(0,2);
-        //verify(ui).placeToken(eq(player1.id),)
-             //   erify(ui).setScore(eq(player.id), eq(expectedScore));
-    }
-    @Test
-    void removeCards(){
-        table.removeCard(2);
 
-        assertEquals(null,  slotToCard[2]);
-        assertEquals(null,  cardToSlot[8]);
-    }
     @Test
-    void removeCardsInSlots(){
-        table.placeCard(2,3);
-        assertEquals(null,  slotToCard[3]);
-        assertEquals(null,  cardToSlot[2]);
+    void removeCard_actuallyRemoveProperSlot() {
+        try {placeSomeCardsAndAssert(); } catch (InterruptedException ignored) {}
+        table.removeCard(2);
+        assertEquals(null,table.slotToCard[2]);
+        assertEquals(null,cardToSlot[8]);
+    }
+
+    @Test
+    void removeCards_DontRemoveOtherSlot() {
+        try {placeSomeCardsAndAssert();} catch (InterruptedException ignored) {}
+        table.cardToSlot[11] = 3;
+        table.slotToCard[3] = 11;
+        table.removeCard(2);
+        assertEquals(null,table.slotToCard[2]);
+        assertEquals(null,cardToSlot[8]);
+        assertEquals(3,cardToSlot[11]);
+        assertEquals(11,slotToCard[3]);
     }
 
     static class MockUserInterface implements UserInterface {

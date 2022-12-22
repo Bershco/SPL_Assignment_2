@@ -82,7 +82,7 @@ public class Player implements Runnable {
     /**
      * Queue used for messages from the dealer.
      */
-    private final ConcurrentLinkedQueue<Message> messages;
+    protected final ConcurrentLinkedQueue<Message> messages;
 
     /**
      * An array used to keep track of current tokens per slots.
@@ -290,6 +290,8 @@ public class Player implements Runnable {
     /**
      * Helper method for the dealer to send proper messages for the player to receive.
      * @param m the message from the dealer.
+     * @pre int size = messages.size()
+     * @post message.size() == size + 1
      */
     public void sendMessage(Message m) {
         messages.add(m);
@@ -315,10 +317,11 @@ public class Player implements Runnable {
     }
     /**
      * Penalize a player and perform other related actions.
-     *  @post - the player's score is not increased.
+     *  @pre int currScore = score()
+     *  @post - score() == currScore
      */
     public void penalty() {
-
+        incomingActions.clear();
         for (long counter = env.config.penaltyFreezeMillis; counter >= noFreeze; counter -= SECOND)
             try {
                 env.ui.setFreeze(id,counter);

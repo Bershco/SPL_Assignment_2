@@ -4,6 +4,8 @@ import bguspl.set.Config;
 import bguspl.set.Env;
 import bguspl.set.UserInterface;
 import bguspl.set.Util;
+import bguspl.set.ex.Player.Message;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,9 +13,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -72,33 +77,18 @@ class PlayerTest {
     }
 
     @Test
-    void Penalty(){
-        // force table.countCards to return 3
-        when(table.countCards()).thenReturn(3); // this part is just for demonstration
-
-        // calculate the expected score for later
-        int expectedScore = 0;
-
-        // call the method we are testing
+    void penalty_DoesntRaiseScore(){
+        int beforeScore = player.score();
         player.penalty();
-
-        // check that the score was increased correctly
-        assertEquals(expectedScore, player.score());
-
-        // check that ui.setScore was called with the player's id and the correct score
-        verify(ui).setScore(eq(player.id), eq(expectedScore));
+        assertEquals(beforeScore, player.score());
     }
 
     @Test
-    void keyPressed(){
-        int chosenSlot = 4;
-        player.keyPressed(chosenSlot);
-        boolean tokenOnSlot = player.getTokenOnSlot()[chosenSlot];
-        int otherSlot = 6;
-        boolean OtherTokenOnSlot = player.getTokenOnSlot()[otherSlot];
-        boolean expectedValue = true;
-        assertEquals(expectedValue, tokenOnSlot);
-        assertEquals(!expectedValue, OtherTokenOnSlot);
+    void sendMessage_PlayerReceiveOnlyPenalty(){
+        player.sendMessage(Message.PENALTY);
+        assertEquals(Message.PENALTY, player.messages.remove());
+        player.sendMessage(Message.PENALTY);
+        assertNotEquals(Message.POINT, player.messages.remove());
     }
 
 }
