@@ -24,7 +24,7 @@ public class Config {
     /**
      * The number of features on the cards (e.g. shape, color etc.)
      */
-    public final int featureCount;
+    public final int featureCount; //not used by us
 
     /**
      * The number of choices for each feature (e.g. red, green, blue)
@@ -44,7 +44,7 @@ public class Config {
     /**
      * The number of computer players (i.e. input is simulated)
      */
-    public final int computerPlayers;
+    public final int computerPlayers; //not used by us
 
     /**
      * The total number of players (human + computer) in the game
@@ -54,7 +54,7 @@ public class Config {
     /**
      * Whether to print out hints to the console or not
      */
-    public final boolean hints;
+    public final boolean hints; //not used by anything pretty much
 
     /**
      * The number of milliseconds until the dealer reshuffles the deck (0 show timer since last action, -1 show nothing)
@@ -84,13 +84,13 @@ public class Config {
     /**
      * The number of milliseconds to pause at the end of the game before closing
      */
-    public final long endGamePauseMillies;
+    public final long endGamePauseMillies; //not used by us
 
     /**
      * The names of the players to display on the screen
      * Note: if there are more players than names, the remaining players will be called "Player 3", "Player 4", etc.
      */
-    public final String[] playerNames;
+    public final String[] playerNames; //not used by us
 
     /**
      * The number of rows in the grid of cards on the table (and on the screen)

@@ -58,6 +58,11 @@ public class Player implements Runnable {
      */
     private int score;
 
+    public enum Message{
+        PENALTY,
+        POINT
+    }
+
     public void removeCardSlotsFromIncomingActionsQueue(int[] currCardSlots) {
         for (Integer i : incomingActions) {
             for (int slot : currCardSlots) {
@@ -66,18 +71,16 @@ public class Player implements Runnable {
             }
         }
     }
-
-    public enum Message{
-        PENALTY,
-        POINT
-    }
     public final ConcurrentLinkedQueue<Integer> incomingActions;
     private final ConcurrentLinkedQueue<Message> messages;
 
-    private boolean[] tokenOnSlot;
+    private final boolean[] tokenOnSlot;
     private int tokensPlaced;
     private final int SECOND = 1000;
-    private final Object o = new Object();
+    private final int noFreeze = 0;
+    private final int noTokens = 0;
+    public static final String playerThreadName = "Player";
+    public static final String aiThreadName = "Computer";
 
     /**
      * The class constructor.
@@ -96,8 +99,8 @@ public class Player implements Runnable {
         this.dealer = dealer;
         incomingActions = new ConcurrentLinkedQueue<>();
         messages = new ConcurrentLinkedQueue<>();
-        tokenOnSlot = new boolean[env.config.rows * env.config.columns];
-        tokensPlaced = 0;
+        tokenOnSlot = new boolean[env.config.tableSize];
+        tokensPlaced = noTokens;
     }
     public boolean[] getTokenOnSlot(){
         return tokenOnSlot;
@@ -108,11 +111,11 @@ public class Player implements Runnable {
     @Override
     public void run() {
         synchronized (dealer) {
+            env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + "starting.");
             dealer.iStarted();
             dealer.notifyAll(); //not sure if this will make it fair exactly.
         }
         playerThread = Thread.currentThread();
-        env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + "starting.");
         if (!human) createArtificialIntelligence();
         while (!terminate) {
             try {
@@ -127,18 +130,18 @@ public class Player implements Runnable {
                 if (tokenOnSlot[nextAction]) {
                     table.removeToken(id, nextAction);
                     tokenOnSlot[nextAction] = false;
-                    if (tokensPlaced > 0)
+                    if (tokensPlaced > noTokens)
                         tokensPlaced--;
                 } else {
-                    if (tokensPlaced < table.legalSetSize & dealer.placedCards) {
+                    if (tokensPlaced < env.config.featureSize) {
                         table.placeToken(id, nextAction);
                         tokenOnSlot[nextAction] = true;
-                        if (++tokensPlaced == table.legalSetSize) {
-                            int[] currSetCardSlots = new int[table.legalSetSize];
+                        if (++tokensPlaced == env.config.featureSize) {
+                            int[] currSetCardSlots = new int[env.config.featureSize];
                             int cSCSInd = 0;
                             for (int i = 0; i < tokenOnSlot.length; i++) {
                                 if (tokenOnSlot[i]) {
-                                    if (cSCSInd == 3)
+                                    if (cSCSInd == env.config.featureSize)
                                         break;
                                     currSetCardSlots[cSCSInd] = i;
                                     cSCSInd++;
@@ -151,11 +154,6 @@ public class Player implements Runnable {
 
             } catch (NoSuchElementException ignored) {}
         }
-        /*
-        if (!human)
-            while (aiThread.isAlive())
-                try { aiThread.join(); } catch (InterruptedException ignored) {}
-         */
         env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
     }
 
@@ -166,18 +164,21 @@ public class Player implements Runnable {
     private void createArtificialIntelligence() {
         // note: this is a very, very smart AI (!)
         aiThread = new Thread(() -> {
-            env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " starting.");
-            dealer.iStarted();
+            synchronized (dealer) {
+                env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " starting.");
+                dealer.iStarted();
+                dealer.notifyAll();
+            }
             while (!terminateAI) {
                 keyPressSimulator();
             }
             env.logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + " terminated.");
-        }, "computer-" + id);
+        }, aiThreadName + "-" + id);
         aiThread.start();
     }
 
     private void keyPressSimulator() {
-        keyPressed(((int)Math.floor(Math.random()*env.config.rows*env.config.columns)));
+        keyPressed(((int)Math.floor(Math.random() * env.config.tableSize)));
     }
     /**
      * Called when the game should be terminated due to an external event.
@@ -225,10 +226,10 @@ public class Player implements Runnable {
         env.ui.setFreeze(id,env.config.pointFreezeMillis);
         synchronized (this){
             try {
-                wait((env.config.pointFreezeMillis > 0) ? env.config.pointFreezeMillis : 1);
+                wait((env.config.pointFreezeMillis > noFreeze) ? env.config.pointFreezeMillis : 1);
             } catch (InterruptedException ignored1) {}
         }
-        env.ui.setFreeze(id,0); //TODO this is magic number, please change
+        env.ui.setFreeze(id,noFreeze);
 
 
     }
@@ -257,10 +258,10 @@ public class Player implements Runnable {
      */
     public void penalty() {
 
-        for (long counter = env.config.penaltyFreezeMillis; counter >= 0; counter -= SECOND)
+        for (long counter = env.config.penaltyFreezeMillis; counter >= noFreeze; counter -= SECOND)
             try {
                 env.ui.setFreeze(id,counter);
-                if (counter > 0)
+                if (counter > noFreeze)
                     synchronized (this) {
                         wait(SECOND);
                     }
@@ -272,7 +273,7 @@ public class Player implements Runnable {
             for (int slotId : cardSlots) {
                 if (tokenOnSlot[slotId]) {
                     table.removeToken(id, slotId);
-                    tokensPlaced = (tokensPlaced >= 0) ? tokensPlaced - 1 : tokensPlaced; //Only reduce tokensPlaced if it's above or at 0
+                    tokensPlaced = (tokensPlaced >= noTokens) ? tokensPlaced - 1 : tokensPlaced; //Only reduce tokensPlaced if it's above or at 0
                     tokenOnSlot[slotId] = false;
                 }
             }
