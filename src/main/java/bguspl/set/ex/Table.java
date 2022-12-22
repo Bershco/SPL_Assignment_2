@@ -98,6 +98,7 @@ public class Table {
     /**
      * Removes a card from a grid slot on the table.
      * @param slot - the slot from which to remove the card.
+     * @post - the slot is empty
      */
     public void removeCard(int slot) {
         Integer id = slotToCard[slot];
@@ -117,6 +118,7 @@ public class Table {
      * Places a player token on a grid slot.
      * @param player - the player the token belongs to.
      * @param slot   - the slot on which to place the token.
+     * @post - a token is placed in the relevant place for player
      */
     public void placeToken(int player, int slot) {
         env.ui.placeToken(player,slot);
@@ -126,6 +128,7 @@ public class Table {
      * Removes a token of a player from a grid slot.
      * @param player - the player the token belongs to.
      * @param slot   - the slot from which to remove the token.
+     * @post - a token is removed for the player
      */
     public void removeToken(int player, int slot) {
         env.ui.removeToken(player, slot);
@@ -136,7 +139,11 @@ public class Table {
                 removeToken(player,i);
         }
     }
-
+    /**
+     * Removes a token of a player from a grid slot.
+     * @param currCardSlots - an array of slots where cards are placed
+     * @post - removes all the cards in the array from table
+     */
     public void removeCardsAndTokensInSlots(int[] currCardSlots) {
         for (int i : currCardSlots) {
             removeCard(i);
