@@ -19,6 +19,9 @@ public class Player implements Runnable {
      */
     private final Env env;
 
+    /**
+     * The dealer object.
+     */
     private final Dealer dealer;
 
     /**
@@ -47,10 +50,15 @@ public class Player implements Runnable {
     private final boolean human;
 
     /**
-     * True iff game should be terminated due to an external event.
+     * True iff the player thread should be terminated at the end of the game, whether by an external event,
+     * or if someone wins.
      */
     private volatile boolean terminate;
 
+    /**
+     * True iff the AI thread should be terminated at the end of the game, whether by an external event,
+     * or if someone wins.
+     */
     private volatile boolean terminateAI;
 
     /**
@@ -58,24 +66,37 @@ public class Player implements Runnable {
      */
     private int score;
 
+    /**
+     * Used for dealer messages to the player.
+     */
     public enum Message{
         PENALTY,
         POINT
     }
 
-    public void removeCardSlotsFromIncomingActionsQueue(int[] currCardSlots) {
-        for (Integer i : incomingActions) {
-            for (int slot : currCardSlots) {
-                if (i == slot)
-                    incomingActions.remove(i);
-            }
-        }
-    }
+    /**
+     * Queue used for the incoming actions from keyPressed method
+     */
     public final ConcurrentLinkedQueue<Integer> incomingActions;
+
+    /**
+     * Queue used for messages from the dealer.
+     */
     private final ConcurrentLinkedQueue<Message> messages;
 
+    /**
+     * An array used to keep track of current tokens per slots.
+     */
     private final boolean[] tokenOnSlot;
+
+    /**
+     * Amount of 'true' values in tokenOnSlot - basically the number of tokens placed.
+     */
     private int tokensPlaced;
+
+    /**
+     * Magic number (and strings) removers.
+     */
     private final int SECOND = 1000;
     private final int noFreeze = 0;
     private final int noTokens = 0;
@@ -102,6 +123,11 @@ public class Player implements Runnable {
         tokenOnSlot = new boolean[env.config.tableSize];
         tokensPlaced = noTokens;
     }
+
+    /**
+     * Getter for tokenOnSlot.
+     * @return tokenOnSlot variable.
+     */
     public boolean[] getTokenOnSlot(){
         return tokenOnSlot;
     }
@@ -177,18 +203,39 @@ public class Player implements Runnable {
         aiThread.start();
     }
 
+    /**
+     * Helper method called from aiThread's run() to generate proper slots.
+     */
     private void keyPressSimulator() {
         keyPressed(((int)Math.floor(Math.random() * env.config.tableSize)));
     }
     /**
-     * Called when the game should be terminated due to an external event.
+     * Called when the player thread should be terminated at the end of the game, whether by an external event,
+     * or if someone wins.
      */
     public void terminate() {
         terminate = true;
     }
 
+    /**
+     * Called when the AI thread should be terminated at the end of the game, whether by an external event,
+     * or if someone wins.
+     */
     public void terminateAI() {
         terminateAI = true;
+    }
+
+    /**
+     * Removes certain card slots from the incomingActions queue.
+     * @param currCardSlots the card slots to be removed from the queue.
+     */
+    public void removeCardSlotsFromIncomingActionsQueue(int[] currCardSlots) {
+        for (Integer i : incomingActions) {
+            for (int slot : currCardSlots) {
+                if (i == slot)
+                    incomingActions.remove(i);
+            }
+        }
     }
 
     /**
@@ -211,13 +258,17 @@ public class Player implements Runnable {
         }
     }
 
+    /**
+     * Checks whether a certain slot is null.
+     * @param slot the slot to check.
+     * @return true iff the slot checked is null.
+     */
     private boolean slotIsNull(int slot) {
         return table.slotToCard[slot] == null;
     }
 
     /**
      * Award a point to a player and perform other related actions.
-     *
      * @post - the player's score is increased by 1.
      * @post - the player's score is updated in the ui.
      */
@@ -236,6 +287,10 @@ public class Player implements Runnable {
 
     }
 
+    /**
+     * Helper method for the dealer to send proper messages for the player to receive.
+     * @param m the message from the dealer.
+     */
     public void sendMessage(Message m) {
         messages.add(m);
         synchronized (incomingActions) {
@@ -243,6 +298,9 @@ public class Player implements Runnable {
         }
     }
 
+    /**
+     * Helper method for the player to receive the message sent by the dealer.
+     */
     private void checkMessage() {
         Message m = messages.remove();
         if (m == Message.PENALTY) {
@@ -271,6 +329,10 @@ public class Player implements Runnable {
             } catch (InterruptedException ignored1) {}
     }
 
+    /**
+     * Removes all of 'this' player's tokens from the card slots received by the card slots.
+     * @param cardSlots the card slots to remove 'this' player's tokens from.
+     */
     public void removeMyTokens(int[] cardSlots){
         synchronized (incomingActions) {
             for (int slotId : cardSlots) {
@@ -286,6 +348,10 @@ public class Player implements Runnable {
 
     }
 
+    /**
+     * Getter for the score variable.
+     * @return the 'score' variable.
+     */
     public int score() {
         return score;
     }

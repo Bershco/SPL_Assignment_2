@@ -134,6 +134,11 @@ public class Table {
         env.ui.removeToken(player, slot);
     }
 
+    /**
+     * Removes a token of a player from a grid slot.
+     * @param player - the player the token belongs to.
+     * @param slots   - the slots from which to remove the tokens.
+     */
     public void removeTokens(int player, int[] slots) {
         for (int i : slots) {
                 removeToken(player,i);
