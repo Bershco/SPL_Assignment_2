@@ -273,7 +273,7 @@ public class Dealer implements Runnable {
         synchronized (bothQueues){
             try {
                 if (!terminate)
-                    bothQueues.wait(env.config.tableDelayMillis);
+                    bothQueues.wait(env.config.tableDelayMillis > 0 ? env.config.tableDelayMillis : practicallyZeroMS);
                 bothQueues.notifyAll();
             } catch (InterruptedException ignored) {}
         }

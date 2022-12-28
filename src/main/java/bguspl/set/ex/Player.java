@@ -327,7 +327,7 @@ public class Player implements Runnable {
                 env.ui.setFreeze(id,counter);
                 if (counter > noFreeze)
                     synchronized (this) {
-                        wait(SECOND);
+                        wait(counter > SECOND ? SECOND : env.config.penaltyFreezeMillis % SECOND);
                     }
             } catch (InterruptedException ignored1) {}
     }
