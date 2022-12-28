@@ -88,7 +88,7 @@ public class Table {
      */
     public void placeCard(int card, int slot) {
         try {
-            Thread.sleep(env.config.tableDelayMillis);
+            Thread.sleep(env.config.tableDelayMillis > 0 ? env.config.tableDelayMillis : Dealer.practicallyZeroMS);
         } catch (InterruptedException ignored) {}
         cardToSlot[card] = slot;
         slotToCard[slot] = card;
